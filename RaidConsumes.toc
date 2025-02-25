@@ -1,0 +1,8 @@
+## Interface: 11200
+## Title: Raid Consumes
+## Notes: Uses consumables based on missing buffs.
+## Author: YourName
+## Version: 1.0
+
+RaidConsumes.xml
+RaidConsumes.lua
