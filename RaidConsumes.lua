@@ -1,100 +1,66 @@
--- Consumables tables (unchanged)
-local healthConsumables = {
-    [12451] = 16323, -- Juju Power
-    [9206]  = 11405, -- Elixir of Giants
-    [13452] = 17538, -- Elixir of the Mongoose
-    [12820] = 17038, -- Winterfall Firewater
-    [8410]  = 10667, -- R.O.I.D.S
-    [13445] = 11348, -- Elixir of Superior Defense
-    [3825]  = 3593,  -- Elixir of Fortitude
-    [20079] = 24382, -- Spirit of Zanza
-    [21151] = 25804, -- Rumsey Rum Black Label
+-- Complete database of consumables: itemID -> {buffID, name}
+local consumablesDB = {
+    [12451] = {buffID = 16323, name = "Juju Power"},
+    [9206]  = {buffID = 11405, name = "Elixir of Giants"},
+    [13452] = {buffID = 17538, name = "Elixir of the Mongoose"},
+    [12820] = {buffID = 17038, name = "Winterfall Firewater"},
+    [8410]  = {buffID = 10667, name = "R.O.I.D.S"},
+    [13445] = {buffID = 11348, name = "Elixir of Superior Defense"},
+    [3825]  = {buffID = 3593,  name = "Elixir of Fortitude"},
+    [20079] = {buffID = 24382, name = "Spirit of Zanza"},
+    [21151] = {buffID = 25804, name = "Rumsey Rum Black Label"},
+    [8412]  = {buffID = 10669, name = "Ground Scorpok Assay"},
+    [9088]  = {buffID = 11371, name = "Gift of Arthas"},
+    [9187]  = {buffID = 11334, name = "Elixir of Greater Agility"},
+    [61224] = {buffID = 45427, name = "Dreamshard Elixir"},
+    [13454] = {buffID = 17539, name = "Greater Arcane Elixir"},
+    [61423] = {buffID = 45489, name = "Dreamtonic"},
+    [13512] = {buffID = 17628, name = "Flask of Supreme Power"},
+    [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight"},
+    [20007] = {buffID = 24363, name = "Mageblood Potion"},
+    [61175] = {buffID = 57107, name = "Medivh's Merlot Blue"},
+    [61174] = {buffID = 57106, name = "Medivh's Merlot"}
 }
 
-local speedConsumables = {
-    [12451] = 16323, -- Juju Power
-    [9206]  = 11405, -- Elixir of Giants
-    [13452] = 17538, -- Elixir of the Mongoose
-    [12820] = 17038, -- Winterfall Firewater
-    [8410]  = 10667, -- R.O.I.D.S
-    [13445] = 11348, -- Elixir of Superior Defense
-    [3825]  = 3593,  -- Elixir of Fortitude
-    [20081] = 24383, -- Swiftness of Zanza
-    [21151] = 25804, -- Rumsey Rum Black Label
+-- Saved variables to persist across sessions
+RaidingConsumesDB = RaidingConsumesDB or {
+    consumablesSelected = {}, -- Table of itemID -> buffID
+    threshold = 120           -- Default reapplication threshold in seconds
 }
 
-local tankHealthConsumables = {
-    [12451] = 16323, -- Juju Power
-    [9206]  = 11405, -- Elixir of Giants
-    [13452] = 17538, -- Elixir of the Mongoose
-    [12820] = 17038, -- Winterfall Firewater
-    [13445] = 11348, -- Elixir of Superior Defense
-    [3825]  = 3593,  -- Elixir of Fortitude
-    [20079] = 24382, -- Spirit of Zanza
-    [21151] = 25804, -- Rumsey Rum Black Label
-    [8412]  = 10669, -- Ground Scorpok Assay
-    [9088]  = 11371, -- Gift of Arthas
-}
+-- ### Helper Functions
 
-local tankSpeedConsumables = {
-    [12451] = 16323, -- Juju Power
-    [9206]  = 11405, -- Elixir of Giants
-    [13452] = 17538, -- Elixir of the Mongoose
-    [12820] = 17038, -- Winterfall Firewater
-    [13445] = 11348, -- Elixir of Superior Defense
-    [3825]  = 3593,  -- Elixir of Fortitude
-    [20081] = 24383, -- Swiftness of Zanza
-    [21151] = 25804, -- Rumsey Rum Black Label
-    [8412]  = 10669, -- Ground Scorpok Assay
-    [9088]  = 11371, -- Gift of Arthas
-}
-
-local testConsumables = {
-    [20709] = 25037, -- Rumsey Rum Light
-    [9187] = 11334,  -- Elixir of Greater Agility
-}
-
-function strsplit(delim, str, maxNb, onlyLast)
-    -- Eliminate bad cases...
-    if string.find(str, delim) == nil then
-        return { str }
-    end
-    if maxNb == nil or maxNb < 1 then
-        maxNb = 0
-    end
+-- **Split strings by a delimiter**
+local function strsplit(delim, str)
     local result = {}
     local pat = "(.-)" .. delim .. "()"
-    local nb = 0
-    local lastPos
+    local lastPos = 1
     for part, pos in string.gfind(str, pat) do
-        nb = nb + 1
-        result[nb] = part
+        table.insert(result, part)
         lastPos = pos
-        if nb == maxNb then break end
     end
-    -- Handle the last field
-    if nb ~= maxNb then
-        result[nb + 1] = string.sub(str, lastPos)
-    end
-    if onlyLast then
-        return result[nb + 1]
-    else
-        return result[1], result[2]
-    end
+    table.insert(result, string.sub(str, lastPos))
+    return result
 end
 
--- Check if a buff is present and has more than the threshold time left
+-- **Custom string.trim function for compatibility**
+function string.trim(s)
+    s = string.gsub(s, "^%s+", "")
+    s = string.gsub(s, "%s+$", "")
+    return s
+end
+
+-- **Check if a buff is active and has more than the threshold time left**
 local function HasBuff(buffID, threshold)
     for i = 0, 31 do
-        local id, _ = GetPlayerBuff(i, "HELPFUL|HARMFUL|PASSIVE")
+        local id = GetPlayerBuff(i, "HELPFUL")
         if id > -1 then
             local buff = GetPlayerBuffID(i)
             if buff == buffID then
                 local timeleft = GetPlayerBuffTimeLeft(id)
-                if timeleft <= threshold then
-                    return false
+                if timeleft > threshold then
+                    return true
                 end
-                return true
             end
         end
     end
@@ -107,8 +73,8 @@ local function HasItem(itemID)
         for slot = 1, GetContainerNumSlots(bag) do
             local itemLink = GetContainerItemLink(bag, slot)
             if itemLink then
-                local _, itemLinkID = strsplit(":", itemLink)
-                if tonumber(itemLinkID) == itemID then
+                local startPos, endPos, foundID = string.find(itemLink, "Hitem:(%d+)")
+                if foundID and tonumber(foundID) == itemID then
                     return true
                 end
             end
@@ -123,8 +89,8 @@ local function FindAndUseItem(itemID)
         for slot = 1, GetContainerNumSlots(bag) do
             local itemLink = GetContainerItemLink(bag, slot)
             if itemLink then
-                local _, itemLinkID = strsplit(":", itemLink)
-                if tonumber(itemLinkID) == itemID then
+                local startPos, endPos, foundID = string.find(itemLink, "Hitem:(%d+)")
+                if foundID and tonumber(foundID) == itemID then
                     UseContainerItem(bag, slot)
                     return true
                 end
@@ -134,124 +100,147 @@ local function FindAndUseItem(itemID)
     return false
 end
 
--- Global variable to track the last time the message was printed
+
+-- ### Global Variables for Restock Message Cooldown
 local lastMessageTime = 0
-local COOLDOWN_TIME = 10  -- 10 seconds cooldown
+local COOLDOWN_TIME = 10 -- 10-second cooldown for restock messages
 
--- Apply all missing consumables that are in your bags and collect missing ones
-local function UseConsumables(consumables, threshold)
+-- ### Core Functionality
+
+-- **Apply selected consumables based on threshold and inventory**
+local function UseConsumables()
     local missingItems = {}
-
-    -- Special handling for strength buff (Juju Power and Elixir of Giants)
-    local strengthBuffPresent = HasBuff(16323, threshold) or HasBuff(11405, threshold)
-    if not strengthBuffPresent then
-        local jujuPowerID = 12451
-        local giantsElixirID = 9206
-        if HasItem(jujuPowerID) then
-            FindAndUseItem(jujuPowerID)
-        elseif HasItem(giantsElixirID) then
-            FindAndUseItem(giantsElixirID)
-        else
-            table.insert(missingItems, "Juju Power or Elixir of Giants")
-        end
-    end
-
-    -- Process the remaining consumables, skipping Juju Power and Elixir of Giants
-    for itemID, buffID in pairs(consumables) do
-        if itemID ~= 12451 and itemID ~= 9206 then -- Skip Juju Power and Elixir of Giants
-            if not HasBuff(buffID, threshold) then
-                if HasItem(itemID) then
-                    FindAndUseItem(itemID)
-                else
-                    local itemName = GetItemInfo(itemID)
-                    if itemName then
-                        table.insert(missingItems, itemName)
-                    else
-                        table.insert(missingItems, "item ID " .. itemID)
-                    end
+    for itemID, buffID in pairs(RaidingConsumesDB.consumablesSelected) do
+        if not HasBuff(buffID, RaidingConsumesDB.threshold) then
+            if HasItem(itemID) then
+                FindAndUseItem(itemID)
+            else
+                local data = consumablesDB[itemID]
+                if data then
+                    table.insert(missingItems, data.name)
                 end
             end
         end
     end
 
-    -- Construct and print a single message for all missing items
+    -- Print a single restock message if items are missing, with cooldown
     if table.getn(missingItems) > 0 then
         local currentTime = GetTime()
         if currentTime - lastMessageTime >= COOLDOWN_TIME then
             local message = "You need to restock on "
-            if table.getn(missingItems) == 1 then
+            local count = table.getn(missingItems)
+            if count == 1 then
                 message = message .. missingItems[1]
-            elseif table.getn(missingItems) == 2 then
+            elseif count == 2 then
                 message = message .. missingItems[1] .. " and " .. missingItems[2]
             else
-                message = message .. table.concat(missingItems, ", ", 1, table.getn(missingItems) - 1) .. ", and " .. missingItems[table.getn(missingItems)]
+                message = message .. table.concat(missingItems, ", ", 1, count - 1) .. ", and " .. missingItems[count]
             end
             print(message)
-            lastMessageTime = currentTime  -- Update the last message time
+            lastMessageTime = currentTime
         end
     end
 end
 
--- Slash commands
-SLASH_HEALTHCONSUMES1 = "/healthconsumes"
-SlashCmdList["HEALTHCONSUMES"] = function()
-    UseConsumables(healthConsumables, 300)
-end
+-- **Slash command handler for configuration**
+local function RaidingConsumes_SlashCommand(msg)
+    if not msg or msg == "" then
+        print("Usage: /rc [list of consumables] | /rc threshold [seconds] | /rc list | /rc reset")
+        return
+    end
+    
+    -- Convert the entire message to lowercase for matching commands
+    local lowerMsg = string.lower(msg)
+    
+    -- Split out the first token
+    local args = strsplit(" ", lowerMsg)
+    local cmd = args[1]
+    table.remove(args, 1)
 
-SLASH_SPEEDCONSUMES1 = "/speedconsumes"
-SlashCmdList["SPEEDCONSUMES"] = function()
-    UseConsumables(speedConsumables, 300)
-end
+    if cmd == "list" then
+        -- Print currently selected consumables
+        local selected = {}
+        for itemID, _ in pairs(RaidingConsumesDB.consumablesSelected) do
+            local data = consumablesDB[itemID]
+            if data then
+                table.insert(selected, data.name)
+            end
+        end
+        if table.getn(selected) == 0 then
+            print("No consumables selected.")
+        else
+            print("Selected consumables: " .. table.concat(selected, ", "))
+        end
 
-SLASH_TANKHEALTH1 = "/tankhealth"
-SlashCmdList["TANKHEALTH"] = function()
-    UseConsumables(tankHealthConsumables, 300)
-end
+    elseif cmd == "threshold" then
+        -- Set the reapplication threshold
+        local seconds = tonumber(args[1])
+        if seconds and seconds > 0 then
+            RaidingConsumesDB.threshold = seconds
+            print("Reapplication threshold set to " .. seconds .. " seconds.")
+        else
+            print("Usage: /rc threshold [seconds] -- This is the time left on the buff at which you can use /usecons to reapply that particular buff")
+        end
 
-SLASH_TANKSPEED1 = "/tankspeed"
-SlashCmdList["TANKSPEED"] = function()
-    UseConsumables(tankSpeedConsumables, 300)
-end
+    elseif cmd == "reset" then
+        -- Clear our table of consumables
+        RaidingConsumesDB.consumablesSelected = {}
+        print("Consumables selection has been reset.")
 
-SLASH_TESTCONSUMES1 = "/testconsumes"
-SlashCmdList["TESTCONSUMES"] = function()
-    UseConsumables(testConsumables, 300)
-end
+    else
+        -- We assume the user wants to add new items, e.g. /rc Juju Power, Elixir of the Mongoose
+        local input = strsplit(",", msg) -- split by commas from the *original* msg (not lowerMsg, if you want case for printing)
+        local anyFound = false
 
-SLASH_CHECKTIME1 = "/checktime"
-SlashCmdList["CHECKTIME"] = function()
-    for i = 0, 31 do
-        local id, _ = GetPlayerBuff(i, "HELPFUL|HARMFUL|PASSIVE")
-        if id > -1 then
-            local timeleft = GetPlayerBuffTimeLeft(id)
-            DEFAULT_CHAT_FRAME:AddMessage("Buff Index " .. i .. ": " .. timeleft .. " seconds left")
+        -- For each comma-delimited name, trim/lower and find in database
+        for _, name in pairs(input) do
+            name = string.trim(name)
+            local nameLower = string.lower(name)
+            
+            local itemID = nil
+            for dbID, data in pairs(consumablesDB) do
+                if string.lower(data.name) == nameLower then
+                    itemID = dbID
+                    break
+                end
+            end
+            
+            if itemID then
+                -- Insert or overwrite into the existing table
+                RaidingConsumesDB.consumablesSelected[itemID] = consumablesDB[itemID].buffID
+                anyFound = true
+                print("Added '" .. consumablesDB[itemID].name .. "' to your selected consumables.")
+            else
+                print("Consumable '" .. name .. "' not found in database.")
+            end
+        end
+
+        if anyFound then
+            print("Selected consumables updated. Use /rc list to see them.")
         end
     end
 end
 
--- Create a frame to handle events
+
+-- ### Register Slash Commands
+SLASH_RAIDINGCONSUMES1 = "/rc"
+SlashCmdList["RAIDINGCONSUMES"] = RaidingConsumes_SlashCommand
+
+SLASH_USECONS1 = "/usecons"
+SlashCmdList["USECONS"] = UseConsumables
+
+-- ### Initialization
+local function RaidingConsumes_Initialize()
+    RaidingConsumesDB.threshold = RaidingConsumesDB.threshold or 120
+    RaidingConsumesDB.consumablesSelected = RaidingConsumesDB.consumablesSelected or {}
+end
+
+-- Create a frame to handle addon initialization
 local frame = CreateFrame("Frame")
-frame:RegisterEvent("ADDON_LOADED")
-
--- Set the event handler
-frame:SetScript("OnEvent", function(self, event, addonName)
-    if event == "ADDON_LOADED" and addonName == "SpitsRaidConsumables" then
-        print("[Spit's Raid Consumeables] loaded. Please do /spitrc for help.")
+frame:RegisterEvent("VARIABLES_LOADED")
+frame:SetScript("OnEvent", function(self, event)
+    if event == "VARIABLES_LOADED" then
+        RaidingConsumes_Initialize()
+        print("[Raiding Consumes] loaded. Use /rc to configure.")
     end
 end)
-
--- Slash command for help
-SLASH_SPITRC1 = "/spitrc"
-SlashCmdList["SPITRC"] = function()
-    print("Spit's Raid Consumeables Help:")
-    print("This addon helps you manage your raid consumables by checking your buffs and using items from your bags.")
-    print("Available commands:")
-    print("/healthconsumes - Applies health-related consumables")
-    print("/speedconsumes - Applies speed-related consumables")
-    print("/tankhealth - Applies tank health consumables")
-    print("/tankspeed - Applies tank speed consumables")
-    print("How it works:")
-    print(" - Checks buffs every time a command is used.")
-    print(" - Uses consumables from your bags if their buffs are missing or have less than 2 minutes left.")
-    print(" - Notifies you to restock if any consumables are missing (message cooldown: 10 seconds).")
-end
