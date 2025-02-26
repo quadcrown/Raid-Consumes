@@ -11,7 +11,7 @@
 ## Features
 
 - **Selectable consumables** via a simple in-game command (`/rc`).
-- **Automatic checks** for existing buffs and threshold times remaining.
+- **Checks** for existing buffs and threshold times remaining when running /usecons command.
 - **Smart usage**: Only uses consumables if you need them.
 - **Saves your choices** across sessions.
 
