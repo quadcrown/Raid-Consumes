@@ -150,7 +150,6 @@ local function FindAndUseItem(itemID)
     return false
 end
 
-
 -- ### Global Variables for Restock Message Cooldown
 local lastMessageTime = 0
 local COOLDOWN_TIME = 10 -- 10-second cooldown for restock messages
@@ -195,7 +194,7 @@ end
 -- **Slash command handler for configuration**
 local function RaidingConsumes_SlashCommand(msg)
     if not msg or msg == "" then
-        print("Usage: /rc [list of consumables] | /rc threshold [seconds] | /rc list | /rc reset")
+        print("Usage: /rc <list of consumables> to set | /rc remove <list of consumables> to remove | /rc threshold <seconds> | /rc list | /rc reset")
         return
     end
     
@@ -237,9 +236,38 @@ local function RaidingConsumes_SlashCommand(msg)
         RaidingConsumesDB.consumablesSelected = {}
         print("Consumables selection has been reset.")
 
+    elseif cmd == "remove" then
+        local removeList = table.concat(args, " ")
+        if removeList == "" then
+            print("Please specify consumables to remove, e.g., /rc remove Juju Power, Elixir of the Mongoose")
+            return
+        end
+        local input = strsplit(",", removeList)
+        for _, name in pairs(input) do
+            name = string.trim(name)
+            local lowerName = string.lower(name)
+            local itemID = nil
+            for id, data in pairs(consumablesDB) do
+                if string.lower(data.name) == lowerName then
+                    itemID = id
+                    break
+                end
+            end
+            if itemID then
+                if RaidingConsumesDB.consumablesSelected[itemID] then
+                    RaidingConsumesDB.consumablesSelected[itemID] = nil
+                    print("Removed '" .. consumablesDB[itemID].name .. "' from your selected consumables.")
+                else
+                    print("'" .. consumablesDB[itemID].name .. "' is not in your selected consumables.")
+                end
+            else
+                print("Consumable '" .. name .. "' not found in database.")
+            end
+        end
+
     else
         -- We assume the user wants to add new items, e.g. /rc Juju Power, Elixir of the Mongoose
-        local input = strsplit(",", msg) -- split by commas from the *original* msg (not lowerMsg, if you want case for printing)
+        local input = strsplit(",", msg) -- split by commas from the *original* msg
         local anyFound = false
 
         -- For each comma-delimited name, trim/lower and find in database
@@ -270,7 +298,6 @@ local function RaidingConsumes_SlashCommand(msg)
         end
     end
 end
-
 
 -- ### Register Slash Commands
 SLASH_RAIDINGCONSUMES1 = "/rc"
