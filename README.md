@@ -13,7 +13,6 @@
 - **Selectable consumables** via a simple in-game command (`/rc`).
 - **Automatic checks** for existing buffs and threshold times remaining.
 - **Smart usage**: Only uses consumables if you need them.
-- **Cooldown** on restock messages to avoid spam.
 - **Saves your choices** across sessions.
 
 ---
