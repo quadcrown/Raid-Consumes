@@ -24,6 +24,8 @@
    (And any other files the addon might include.)
 4. Launch (or re-launch) WoW 1.12.1, and enable “Load Out of Date AddOns” if necessary.
 
+Alternatively, use Githubaddonmanager to automatically install.
+
 ---
 
 ## Usage
