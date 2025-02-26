@@ -1,18 +1,64 @@
-# Raid-Consumes
+# Raid-Consumes (Vanilla 1.12.1)
 
-When using a macro called from this addon, it will use every consumable listed for that particular command until all buffs are active. Once they are all active, the macro will no longer function. When there is 2 minutes left on a buff or the buff has completely ran it's duration, only then will it allow you to click the macro again to reapply. 
+**Raid-Consumes** is a lightweight World of Warcraft (1.12.1) addon that lets you specify consumables to automatically apply with a single button. It checks if you have the buff already and if you have the consumable in your bags, then uses it. If you don't have it, you'll get a one-time restock warning.
 
-The following macros work for the respective classes to put on commonly used full consumes for raiding.
+---
 
-/spitrc for help in game
+## Features
 
-## Melee DPS commands - 	
-	/healthconsumes - Juju Power, Elixir of the mongoose, Winterfall firewater, ROIDS, Elixir of Superior Defense, Elixir of Fortitude, Spirit of Zanza, Rumsey Rum Black Label, Elixir of Giants
-	/speedconsumes - Juju Power, Elixir of the mongoose, Winterfall firewater, ROIDS, Elixir of Superior Defense, Elixir of Fortitude, Swiftness of Zanza, Rumsey Rum Black Label, Elixir of Giants
+- **Selectable consumables** via a simple in-game command (`/rc`).
+- **Automatic checks** for existing buffs and threshold times remaining.
+- **Smart usage**: Only uses consumables if you need them.
+- **Cooldown** on restock messages to avoid spam.
+- **Saves your choices** across sessions.
 
-## Warrior Tank commands
-	/tankhealth - Juju Power, Elixir of the mongoose, Winterfall firewater, Scorpok Assay, Elixir of Superior Defense, Elixir of Fortitude, Spirit of Zanza, Rumsey Rum Black Label, Gift of Arthas, Elixir of Giants
-	/tankspeed - Juju Power, Elixir of the mongoose, Winterfall firewater, Scorpok Assay, Elixir of Superior Defense, Elixir of Fortitude, Swiftness of Zanza, Rumsey Rum Black Label, Gift of Arthas, Elixir of Giants
+---
 
- **When using DPS and tank consumes, if you have Juju Power, it will use that. If you do not have Juju Power, it will use Elixir of Giants. If you do not have either, it is skipped**
+## Installation
 
+1. Download the addon's folder (named, for example, `RaidingConsumes`).
+2. Place it inside your WoW Classic 1.12.1 `Interface\AddOns\` directory.
+3. Make sure the folder structure is correct:  
+   `.../Interface/AddOns/RaidingConsumes/RaidingConsumes.lua`  
+   `.../Interface/AddOns/RaidingConsumes/RaidingConsumes.toc`  
+   (And any other files the addon might include.)
+4. Launch (or re-launch) WoW 1.12.1, and enable “Load Out of Date AddOns” if necessary.
+
+---
+
+## Usage
+
+1. **Choose your consumables** by typing `/rc <consumable names>`. 
+2. Use `/rc list` to see all the consumables you’ve added so far.
+3. **Apply** them anytime with `/usecons`.
+4. If you ever need to **reset** your choices, do `/rc reset`.
+5. If you want to adjust **how soon** before a buff ends that you reapply it, use `/rc threshold <seconds>`.
+
+---
+
+## Commands
+
+### `/rc [consumable names separated by commas]`
+- **Description**: Add new consumables to your selection.  
+- **Example**:  
+  - `\rc Juju Power, Elixir of the Mongoose`  
+    - Adds *Juju Power* and *Elixir of the Mongoose* to your saved list.  
+  - You can run this multiple times to add more. It will **not** overwrite older entries if you’ve set it up to accumulate.
+
+### `/rc list`
+- **Description**: Shows a list of all currently selected consumables in your saved table.
+
+### `/rc threshold <seconds>`
+- **Description**: Sets the time threshold (in seconds) to reapply a buff.  
+- **Example**:  
+  - `\rc threshold 120`  
+    - Means if the buff has 120 seconds (2 minutes) or less remaining, the addon will try to consume that item again.
+
+### `/rc reset`
+- **Description**: Resets and clears **all** currently selected consumables from your table.
+
+### `/usecons`
+- **Description**: Attempts to apply all consumables you’ve selected (if you have them in your bags and do not have the buff or the buff is below the threshold).  
+- **Behavior**:  
+  - Will check each buff, see if it’s missing or nearing expiry, and use the corresponding item if you have it.  
+  - If you *don’t* have the item, you’ll get a “You need to restock” message—but only once every 10 seconds to prevent spam.
