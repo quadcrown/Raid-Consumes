@@ -59,6 +59,12 @@ Alternatively, use Githubaddonmanager to automatically install.
   - `\rc threshold 120`  
     - Means if the buff has 120 seconds (2 minutes) or less remaining, the addon will try to consume that item again.
 
+### `/rc remove <consumable>`
+- **Description**: Selectively removes buffs from your consumable rotation  
+- **Example**:  
+  - `\rc remove Elixir of the mongoose`  
+    - Will remove only elixir of the mongoose from your /usecons consumable list. Do /rc list to verify
+
 ### `/rc reset`
 - **Description**: Resets and clears **all** currently selected consumables from your table.
 
