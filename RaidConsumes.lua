@@ -78,6 +78,7 @@ RaidingConsumesDB = RaidingConsumesDB or {
     threshold = 120           -- Default reapplication threshold in seconds
 }
 
+
 -- ### Helper Functions
 
 -- **Split strings by a delimiter**
@@ -194,7 +195,7 @@ end
 -- **Slash command handler for configuration**
 local function RaidingConsumes_SlashCommand(msg)
     if not msg or msg == "" then
-        print("Usage: /rc <list of consumables> to set | /rc remove <list of consumables> to remove | /rc threshold <seconds> | /rc list | /rc reset")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Usage: /rc <list of consumables> to set | /rc remove <list of consumables> to remove | /rc threshold <seconds> | /rc list | /rc reset")
         return
     end
     
@@ -216,9 +217,10 @@ local function RaidingConsumes_SlashCommand(msg)
             end
         end
         if table.getn(selected) == 0 then
-            print("No consumables selected.")
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r No consumables selected.")
         else
-            print("Selected consumables: " .. table.concat(selected, ", "))
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Selected consumables: " .. table.concat(selected, ", "))
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Current reapplication threshold: " .. (RaidingConsumesDB.threshold or 0) .. " seconds.")
         end
 
     elseif cmd == "threshold" then
@@ -226,20 +228,20 @@ local function RaidingConsumes_SlashCommand(msg)
         local seconds = tonumber(args[1])
         if seconds and seconds > 0 then
             RaidingConsumesDB.threshold = seconds
-            print("Reapplication threshold set to " .. seconds .. " seconds.")
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Reapplication threshold set to " .. seconds .. " seconds.")
         else
-            print("Usage: /rc threshold [seconds] -- This is the time left on the buff at which you can use /usecons to reapply that particular buff")
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Usage: /rc threshold [seconds] -- This is the time left on the buff at which you can use /usecons to reapply that particular buff")
         end
 
     elseif cmd == "reset" then
         -- Clear our table of consumables
         RaidingConsumesDB.consumablesSelected = {}
-        print("Consumables selection has been reset.")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Consumables selection has been reset.")
 
     elseif cmd == "remove" then
         local removeList = table.concat(args, " ")
         if removeList == "" then
-            print("Please specify consumables to remove, e.g., /rc remove Juju Power, Elixir of the Mongoose")
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Please specify consumables to remove, e.g., /rc remove Juju Power, Elixir of the Mongoose")
             return
         end
         local input = strsplit(",", removeList)
@@ -256,12 +258,12 @@ local function RaidingConsumes_SlashCommand(msg)
             if itemID then
                 if RaidingConsumesDB.consumablesSelected[itemID] then
                     RaidingConsumesDB.consumablesSelected[itemID] = nil
-                    print("Removed '" .. consumablesDB[itemID].name .. "' from your selected consumables.")
+                    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Removed '" .. consumablesDB[itemID].name .. "' from your selected consumables.")
                 else
-                    print("'" .. consumablesDB[itemID].name .. "' is not in your selected consumables.")
+                    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r '" .. consumablesDB[itemID].name .. "' is not in your selected consumables.")
                 end
             else
-                print("Consumable '" .. name .. "' not found in database.")
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Consumable '" .. name .. "' not found in database.")
             end
         end
 
@@ -287,14 +289,14 @@ local function RaidingConsumes_SlashCommand(msg)
                 -- Insert or overwrite into the existing table
                 RaidingConsumesDB.consumablesSelected[itemID] = consumablesDB[itemID].buffID
                 anyFound = true
-                print("Added '" .. consumablesDB[itemID].name .. "' to your selected consumables.")
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Added '" .. consumablesDB[itemID].name .. "' to your selected consumables.")
             else
-                print("Consumable '" .. name .. "' not found in database.")
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Consumable '" .. name .. "' not found in database.")
             end
         end
 
         if anyFound then
-            print("Selected consumables updated. Use /rc list to see them.")
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Selected consumables updated. Use /rc list to see them.")
         end
     end
 end
@@ -313,11 +315,14 @@ local function RaidingConsumes_Initialize()
 end
 
 -- Create a frame to handle addon initialization
-local frame = CreateFrame("Frame")
-frame:RegisterEvent("VARIABLES_LOADED")
-frame:SetScript("OnEvent", function(self, event)
+local RaidConsumesFrame = CreateFrame("Frame", "RaidConsumesFrame")
+RaidConsumesFrame:RegisterEvent("VARIABLES_LOADED")
+RaidConsumesFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+RaidConsumesFrame:SetScript("OnEvent", function()
     if event == "VARIABLES_LOADED" then
         RaidingConsumes_Initialize()
-        print("[Raiding Consumes] loaded. Use /rc to configure.")
+        RaidingConsumes_SlashCommand("list")
+    elseif event == "PLAYER_ENTERING_WORLD" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r loaded. Please type /rc for help.")
     end
 end)
