@@ -151,6 +151,23 @@ local function FindAndUseItem(itemID)
     return false
 end
 
+-- Local helper to detect if we have the "eating/drinking" buff
+local function IsEatingOrDrinking()
+    for i = 1, 32 do
+        local texture = UnitBuff("player", i)
+        if not texture then
+            break
+        end
+        -- Check for known textures
+        if texture == "Interface\\Icons\\INV_Misc_Fork&Knife" 
+        or texture == "Interface\\Icons\\INV_Drink_07" then
+            return true
+        end
+    end
+    return false
+end
+
+
 -- ### Global Variables for Restock Message Cooldown
 local lastMessageTime = 0
 local COOLDOWN_TIME = 10 -- 10-second cooldown for restock messages
@@ -159,6 +176,13 @@ local COOLDOWN_TIME = 10 -- 10-second cooldown for restock messages
 
 -- **Apply selected consumables based on threshold and inventory**
 local function UseConsumables()
+    -- 1) Check if currently eating/drinking
+    if IsEatingOrDrinking() then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r You are currently eating or drinking; wait to apply new buffs.")
+        return
+    end
+    
+    -- 2) If not eating/drinking, proceed with applying buffs
     local missingItems = {}
     for itemID, buffID in pairs(RaidingConsumesDB.consumablesSelected) do
         if not HasBuff(buffID, RaidingConsumesDB.threshold) then
@@ -173,7 +197,7 @@ local function UseConsumables()
         end
     end
 
-    -- Print a single restock message if items are missing, with cooldown
+    -- 3) Possibly warn if items are missing
     if table.getn(missingItems) > 0 then
         local currentTime = GetTime()
         if currentTime - lastMessageTime >= COOLDOWN_TIME then
