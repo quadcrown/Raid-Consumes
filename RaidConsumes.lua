@@ -436,7 +436,6 @@ local function RaidingConsumes_SlashCommand(msg)
     
     local lowerMsg = string.lower(msg)
     local args = strsplit(" ", lowerMsg)
-    print("Type of args:", type(args))  -- Add this line
     local cmd = args[1]                 -- Line 253
     table.remove(args, 1)
 
