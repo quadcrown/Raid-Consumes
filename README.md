@@ -2,6 +2,8 @@
 
 **Raid-Consumes** is a lightweight World of Warcraft (1.12.1) addon that lets you specify consumables to automatically apply with a single button. It checks if you have the buff already and if you have the consumable in your bags, then uses it. If you don't have it, you'll get a one-time restock warning.
 
+**03/01/25 Update:** Added GUI interface. Will automatically show when settig consumables. /rc will hide or show this menu. Timers added, visual indicators to match your set threshold as well when buffs need to be reapplied. 
+
 ## If you would like other consumables to be added, please let me know by opening an issue and giving me a list. Preferably provide the ItemID and BuffID, which both can be found on the database (https://database.turtle-wow.org/). 
 1. https://database.turtle-wow.org/?item=12451 <--- 12451 is the ItemID
 2. Click on the buff that is listed on the item, which takes you to the buff it gives you. https://database.turtle-wow.org/?spell=16323 <--- 16323 is the buffID
