@@ -1,73 +1,78 @@
--- Complete database of consumables: itemID -> {buffID, name}
+-- Global variable for shared On Use cooldown
+local lastOnUseTime = 0
+local ON_USE_COOLDOWN = 120 -- 2 minutes in seconds
+
+-- Complete database of consumables: itemID -> {buffID, name, icon, duration, isOnUse}
 local consumablesDB = {
     -- Melee/ranged power/crit consumables
-    [12451] = {buffID = 16323, name = "Juju Power", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600}, -- 1 hour
-    [9206]  = {buffID = 11405, name = "Elixir of Giants", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600}, -- 1 hour
-    [12820] = {buffID = 17038, name = "Winterfall Firewater", icon = "Interface\\Icons\\INV_Potion_92", duration = 1200}, -- 20 minutes
-    [12460] = {buffID = 16329, name = "Juju Might", icon = "Interface\\Icons\\INV_Misc_MonsterScales_07", duration = 600}, -- 10 minutes
-    [9224]  = {buffID = 11406, name = "Elixir of Demonslaying", icon = "Interface\\Icons\\INV_Potion_27", duration = 300}, -- 5 minutes
-    [13452] = {buffID = 17538, name = "Elixir of the Mongoose", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600}, -- 1 hour
-    [9187]  = {buffID = 11334, name = "Elixir of Greater Agility", icon = "Interface\\Icons\\INV_Potion_94", duration = 3600}, -- 1 hour
-    [8410]  = {buffID = 10667, name = "R.O.I.D.S", icon = "Interface\\Icons\\INV_Stone_15", duration = 3600}, -- 1 hour
-    [8412]  = {buffID = 10669, name = "Ground Scorpok Assay", icon = "Interface\\Icons\\INV_Misc_Dust_02", duration = 1800}, -- 30 minutes
-    [5206]  = {buffID = 5665, name = "Bogling Root", icon = "Interface\\Icons\\INV_Misc_Herb_07", duration = 1800}, -- 30 minutes
-    [12450] = {buffID = 16322, name = "Juju Flurry", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 20}, -- 20 seconds
-    [60976] = {buffID = 57042, name = "Danonzo's Tel'Abim Surprise", icon = "Interface\\Icons\\INV_Misc_Food_09", duration = 3600}, -- Unknown, filler
-    [51711] = {buffID = 18192, name = "Sweet Mountain Berry", icon = "Interface\\Icons\\INV_Misc_Food_40", duration = 3600}, -- Unknown, filler
-    [13928] = {buffID = 18192, name = "Grilled Squid", icon = "Interface\\Icons\\INV_Misc_Food_13", duration = 600}, -- 10 minutes
-    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_08", duration = 3600}, -- Unknown, filler
-    [20452] = {buffID = 24799, name = "Smoked Desert Dumplings", icon = "Interface\\Icons\\INV_Misc_Food_64", duration = 900}, -- 15 minutes
-    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_11", duration = 3600}, -- Unknown, filler
-    [51267] = {buffID = 24799, name = "Spicy Beef Burrito", icon = "Interface\\Icons\\INV_Misc_Food_49", duration = 3600}, -- Unknown, filler
-    [13442] = {buffID = 17528, name = "Mighty Rage Potion", icon = "Interface\\Icons\\INV_Potion_41", duration = 20}, -- 20 seconds
-    [5633]  = {buffID = 6613, name = "Great Rage Potion", icon = "Interface\\Icons\\INV_Potion_21", duration = 20}, -- 20 seconds
+    [12451] = {buffID = 16323, name = "Juju Power", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600},
+    [9206]  = {buffID = 11405, name = "Elixir of Giants", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600},
+    [12820] = {buffID = 17038, name = "Winterfall Firewater", icon = "Interface\\Icons\\INV_Potion_92", duration = 1200},
+    [12460] = {buffID = 16329, name = "Juju Might", icon = "Interface\\Icons\\INV_Misc_MonsterScales_07", duration = 600},
+    [9224]  = {buffID = 11406, name = "Elixir of Demonslaying", icon = "Interface\\Icons\\INV_Potion_27", duration = 300},
+    [13452] = {buffID = 17538, name = "Elixir of the Mongoose", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600},
+    [9187]  = {buffID = 11334, name = "Elixir of Greater Agility", icon = "Interface\\Icons\\INV_Potion_94", duration = 3600},
+    [8410]  = {buffID = 10667, name = "R.O.I.D.S", icon = "Interface\\Icons\\INV_Stone_15", duration = 3600},
+    [8412]  = {buffID = 10669, name = "Ground Scorpok Assay", icon = "Interface\\Icons\\INV_Misc_Dust_02", duration = 1800},
+    [5206]  = {buffID = 5665, name = "Bogling Root", icon = "Interface\\Icons\\INV_Misc_Herb_07", duration = 1800},
+    [12450] = {buffID = 16322, name = "Juju Flurry", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 20, isOnUse = true},
+    [60976] = {buffID = 57042, name = "Danonzo's Tel'Abim Surprise", icon = "Interface\\Icons\\INV_Misc_Food_09", duration = 3600},
+    [51711] = {buffID = 18192, name = "Sweet Mountain Berry", icon = "Interface\\Icons\\INV_Misc_Food_40", duration = 3600},
+    [13928] = {buffID = 18192, name = "Grilled Squid", icon = "Interface\\Icons\\INV_Misc_Food_13", duration = 600},
+    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_08", duration = 3600},
+    [20452] = {buffID = 24799, name = "Smoked Desert Dumplings", icon = "Interface\\Icons\\INV_Misc_Food_64", duration = 900},
+    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_11", duration = 3600},
+    [51267] = {buffID = 24799, name = "Spicy Beef Burrito", icon = "Interface\\Icons\\INV_Misc_Food_49", duration = 3600},
+    [13442] = {buffID = 17528, name = "Mighty Rage Potion", icon = "Interface\\Icons\\INV_Potion_41", duration = 20, isOnUse = true},
+    [5633]  = {buffID = 6613, name = "Great Rage Potion", icon = "Interface\\Icons\\INV_Potion_21", duration = 20, isOnUse = true},
     -- Tank/Defensive/Stamina consumables
-    [13445] = {buffID = 11348, name = "Elixir of Superior Defense", icon = "Interface\\Icons\\INV_Potion_66", duration = 3600}, -- 1 hour
-    [3825]  = {buffID = 3593, name = "Elixir of Fortitude", icon = "Interface\\Icons\\INV_Potion_43", duration = 3600}, -- 1 hour
-    [20079] = {buffID = 24382, name = "Spirit of Zanza", icon = "Interface\\Icons\\INV_Potion_30", duration = 7200}, -- 2 hours
-    [13510] = {buffID = 17626, name = "Flask of the Titans", icon = "Interface\\Icons\\INV_Potion_62", duration = 7200}, -- 2 hours
-    [9088]  = {buffID = 11371, name = "Gift of Arthas", icon = "Interface\\Icons\\INV_Potion_28", duration = 1800}, -- 30 minutes
-    [61175] = {buffID = 57107, name = "Medivh's Merlot Blue", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600}, -- Unknown, filler
-    [61174] = {buffID = 57106, name = "Medivh's Merlot", icon = "Interface\\Icons\\INV_Misc_Ribbon_01", duration = 3600}, -- Unknown, filler
-    [10305] = {buffID = 12175, name = "Scroll of Protection IV", icon = "Interface\\Icons\\INV_Scroll_07", duration = 1800}, -- 30 minutes
-    [21151] = {buffID = 25804, name = "Rumsey Rum Black Label", icon = "Interface\\Icons\\INV_Drink_04", duration = 900}, -- 15 minutes
-    [12459] = {buffID = 16321, name = "Juju Escape", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 10}, -- 10 seconds
-    [12455] = {buffID = 16326, name = "Juju Ember", icon = "Interface\\Icons\\INV_Misc_MonsterScales_15", duration = 20}, -- 20 seconds
-    [12457] = {buffID = 16325, name = "Juju Chill", icon = "Interface\\Icons\\INV_Misc_MonsterScales_09", duration = 20}, -- 20 seconds
-    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_08", duration = 3600}, -- Unknown, filler
-    [21023] = {buffID = 25661, name = "Dirge's Kickin' Chimaerok Chops", icon = "Interface\\Icons\\INV_Misc_Food_65", duration = 1200}, -- 20 minutes
-    [84040] = {buffID = 45623, name = "Le Fishe Au Chocolat", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600}, -- Unknown, filler
+    [13445] = {buffID = 11348, name = "Elixir of Superior Defense", icon = "Interface\\Icons\\INV_Potion_66", duration = 3600},
+    [3825]  = {buffID = 3593, name = "Elixir of Fortitude", icon = "Interface\\Icons\\INV_Potion_43", duration = 3600},
+    [20079] = {buffID = 24382, name = "Spirit of Zanza", icon = "Interface\\Icons\\INV_Potion_30", duration = 7200},
+    [13510] = {buffID = 17626, name = "Flask of the Titans", icon = "Interface\\Icons\\INV_Potion_62", duration = 7200},
+    [9088]  = {buffID = 11371, name = "Gift of Arthas", icon = "Interface\\Icons\\INV_Potion_28", duration = 1800},
+    [61175] = {buffID = 57107, name = "Medivh's Merlot Blue", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600},
+    [61174] = {buffID = 57106, name = "Medivh's Merlot", icon = "Interface\\Icons\\INV_Misc_Ribbon_01", duration = 3600},
+    [10305] = {buffID = 12175, name = "Scroll of Protection IV", icon = "Interface\\Icons\\INV_Scroll_07", duration = 1800},
+    [21151] = {buffID = 25804, name = "Rumsey Rum Black Label", icon = "Interface\\Icons\\INV_Drink_04", duration = 900},
+    [12459] = {buffID = 16321, name = "Juju Escape", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 10},
+    [12455] = {buffID = 16326, name = "Juju Ember", icon = "Interface\\Icons\\INV_Misc_MonsterScales_15", duration = 20},
+    [12457] = {buffID = 16325, name = "Juju Chill", icon = "Interface\\Icons\\INV_Misc_MonsterScales_09", duration = 20},
+    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_08", duration = 3600},
+    [21023] = {buffID = 25661, name = "Dirge's Kickin' Chimaerok Chops", icon = "Interface\\Icons\\INV_Misc_Food_65", duration = 1200},
+    [84040] = {buffID = 45623, name = "Le Fishe Au Chocolat", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600},
     -- Mana user consumables
-    [61224] = {buffID = 45427, name = "Dreamshard Elixir", icon = "Interface\\Icons\\INV_Potion_12", duration = 3600}, -- Unknown, filler
-    [13454] = {buffID = 17539, name = "Greater Arcane Elixir", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600}, -- 1 hour
-    [61423] = {buffID = 45489, name = "Dreamtonic", icon = "Interface\\Icons\\INV_Potion_10", duration = 3600}, -- Unknown, filler
-    [13512] = {buffID = 17628, name = "Flask of Supreme Power", icon = "Interface\\Icons\\INV_Potion_41", duration = 7200}, -- 2 hours
-    [20007] = {buffID = 24363, name = "Mageblood Potion", icon = "Interface\\Icons\\INV_Potion_45", duration = 3600}, -- 1 hour
-    [8423]  = {buffID = 10692, name = "Cerebral Cortex Compound", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600}, -- Unknown, filler
-    [9264]  = {buffID = 11474, name = "Elixir of Shadow Power", icon = "Interface\\Icons\\INV_Potion_46", duration = 1800}, -- 30 minutes
-    [51718] = {buffID = 22731, name = "Juicy Striped Melon", icon = "Interface\\Icons\\INV_Misc_Food_22", duration = 3600}, -- Unknown, filler
-    [13511] = {buffID = 17627, name = "Flask of Distilled Wisdom", icon = "Interface\\Icons\\INV_Potion_97", duration = 7200}, -- 2 hours
-    [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 3600}, -- Unknown, filler
-    [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 3600}, -- Unknown, filler
-    [13931] = {buffID = 18194, name = "Nightfin Soup", icon = "Interface\\Icons\\INV_Drink_17", duration = 600}, -- 10 minutes
-    -- Protection Potions
-    [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_83", duration = 3600}, -- 1 hour
-    [13456] = {buffID = 17544, name = "Greater Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_20", duration = 3600}, -- 1 hour
-    [6050]  = {buffID = 7239, name = "Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_13", duration = 1800}, -- 30 minutes
-    [13457] = {buffID = 17543, name = "Greater Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_24", duration = 3600}, -- 1 hour
-    [6049]  = {buffID = 7233, name = "Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 1800}, -- 30 minutes
-    [13460] = {buffID = 17545, name = "Greater Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 3600}, -- 1 hour
-    [6051]  = {buffID = 7245, name = "Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 1800}, -- 30 minutes
-    [13458] = {buffID = 17546, name = "Greater Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_22", duration = 3600}, -- 1 hour
-    [6052]  = {buffID = 7254, name = "Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_06", duration = 1800}, -- 30 minutes
-    [13459] = {buffID = 17548, name = "Greater Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_23", duration = 3600}, -- 1 hour
-    [6048]  = {buffID = 7242, name = "Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_44", duration = 1800}, -- 30 minutes
-    [9036]  = {buffID = 11364, name = "Magic Resistance Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 180}, -- 3 minutes
-    [13455] = {buffID = 17540, name = "Greater Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_69", duration = 120}, -- 2 minutes
-    [4623]  = {buffID = 4941, name = "Lesser Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_67", duration = 120}, -- 2 minutes
+    [61224] = {buffID = 45427, name = "Dreamshard Elixir", icon = "Interface\\Icons\\INV_Potion_12", duration = 3600},
+    [13454] = {buffID = 17539, name = "Greater Arcane Elixir", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600},
+    [61423] = {buffID = 45489, name = "Dreamtonic", icon = "Interface\\Icons\\INV_Potion_10", duration = 3600},
+    [13512] = {buffID = 17628, name = "Flask of Supreme Power", icon = "Interface\\Icons\\INV_Potion_41", duration = 7200},
+    [20007] = {buffID = 24363, name = "Mageblood Potion", icon = "Interface\\Icons\\INV_Potion_45", duration = 3600},
+    [8423]  = {buffID = 10692, name = "Cerebral Cortex Compound", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600},
+    [9264]  = {buffID = 11474, name = "Elixir of Shadow Power", icon = "Interface\\Icons\\INV_Potion_46", duration = 1800},
+    [51718] = {buffID = 22731, name = "Juicy Striped Melon", icon = "Interface\\Icons\\INV_Misc_Food_22", duration = 3600},
+    [13511] = {buffID = 17627, name = "Flask of Distilled Wisdom", icon = "Interface\\Icons\\INV_Potion_97", duration = 7200},
+    [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 3600},
+    [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 3600},
+    [13931] = {buffID = 18194, name = "Nightfin Soup", icon = "Interface\\Icons\\INV_Drink_17", duration = 600},
+    -- Protection Potions (all marked as On Use)
+    [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_83", duration = 3600, isOnUse = true},
+    [13456] = {buffID = 17544, name = "Greater Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_20", duration = 3600, isOnUse = true},
+    [6050]  = {buffID = 7239, name = "Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_13", duration = 1800, isOnUse = true},
+    [13457] = {buffID = 17543, name = "Greater Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_24", duration = 3600, isOnUse = true},
+    [6049]  = {buffID = 7233, name = "Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 1800, isOnUse = true},
+    [13460] = {buffID = 17545, name = "Greater Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 3600, isOnUse = true},
+    [6051]  = {buffID = 7245, name = "Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 1800, isOnUse = true},
+    [13458] = {buffID = 17546, name = "Greater Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_22", duration = 3600, isOnUse = true},
+    [6052]  = {buffID = 7254, name = "Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_06", duration = 1800, isOnUse = true},
+    [13459] = {buffID = 17548, name = "Greater Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_23", duration = 3600, isOnUse = true},
+    [6048]  = {buffID = 7242, name = "Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_44", duration = 1800, isOnUse = true},
+    [9036]  = {buffID = 11364, name = "Magic Resistance Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 180, isOnUse = true},
+    [13455] = {buffID = 17540, name = "Greater Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_69", duration = 120, isOnUse = true},
+    [4623]  = {buffID = 4941, name = "Lesser Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_67", duration = 120, isOnUse = true},
     -- Uncategorized
-    [20081] = {buffID = 24383, name = "Swiftness of Zanza", icon = "Interface\\Icons\\INV_Potion_31", duration = 7200}, -- 2 hours
-    [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600}, -- Unknown, filler
+    [20081] = {buffID = 24383, name = "Swiftness of Zanza", icon = "Interface\\Icons\\INV_Potion_31", duration = 7200},
+    [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600, isOnUse = true},
+    [5634] = {buffID = 6615, name = "Free Action Potion", icon = "Interface\\Icons\\INV_Potion_04", duration = 30, isOnUse = true},
 }
 
 -- Saved variables to persist across sessions
@@ -213,7 +218,7 @@ RC.ConfigFrame:SetScript("OnDragStop", function()
 end)
 
 -- Create a pool of 10 buttons
-for i = 1, 10 do
+for i = 1, 15 do
     local button = CreateFrame("Button", nil, RC.ConfigFrame)
     button:SetWidth(32)
     button:SetHeight(32)
@@ -223,8 +228,14 @@ for i = 1, 10 do
     if not button.timerText then
         button.timerText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         button.timerText:SetPoint("CENTER", button, "CENTER", 0, 0)
-        button.timerText:SetText("")  -- start blank
+        button.timerText:SetText("")  -- Start blank
     end
+
+    -- Create overlay texture for active buff effect
+    button.overlay = button:CreateTexture(nil, "OVERLAY")
+    button.overlay:SetAllPoints()
+    button.overlay:SetTexture(0, 1, 0, 0.3) -- Green with 30% opacity
+    button.overlay:Hide()
 
     table.insert(RC.buttons, button)
 end
@@ -233,16 +244,18 @@ end
 -- Function to update timer text on each button
 -- ##################################################
 function RC:UpdateTimers()
-    local threshold = RaidingConsumesDB.threshold or 120  -- e.g., 300 if you set /rc threshold 300
-    
+    local currentTime = GetTime()
+    local threshold = RaidingConsumesDB.threshold or 120
+    local sharedCooldown = math.max(0, ON_USE_COOLDOWN - (currentTime - lastOnUseTime))
+
     for i, button in ipairs(self.buttons) do
-        -- Only deal with visible buttons that have an itemID
         if button:IsShown() and button.itemID then
-            local buffID = RaidingConsumesDB.consumablesSelected[button.itemID]
+            local itemID = button.itemID
+            local data = consumablesDB[itemID]
+            local buffID = RaidingConsumesDB.consumablesSelected[itemID]
             local foundTimeLeft = 0
 
             if buffID then
-                -- Look for the buff
                 for auraIndex = 0, 31 do
                     local buffIndex = GetPlayerBuff(auraIndex, "HELPFUL")
                     if buffIndex > -1 then
@@ -255,40 +268,62 @@ function RC:UpdateTimers()
                 end
             end
 
-            if foundTimeLeft and foundTimeLeft > 0 then
-                -- We have an active buff
-                -- Convert total seconds to mm:ss
-                local totalSeconds = math.floor(foundTimeLeft)
-                local mins = math.floor(totalSeconds / 60)
-                local secs = totalSeconds - (mins * 60)
-                button.timerText:SetText(string.format("%d:%02d", mins, secs))
-
-                -- Check threshold
-                if totalSeconds <= threshold then
-                    -- Tint red, full alpha
-                    button:GetNormalTexture():SetVertexColor(1, 0, 0)
+            if data.isOnUse then
+                if foundTimeLeft > 0 then
+                    -- Buff active: full alpha, green overlay, buff timer
                     button:SetAlpha(1.0)
+                    button.overlay:Show()
+                    local totalSeconds = math.floor(foundTimeLeft)
+                    local mins = math.floor(totalSeconds / 60)
+                    local secs = totalSeconds - (mins * 60)
+                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                elseif sharedCooldown > 0 then
+                    -- On cooldown: 30% alpha, cooldown timer
+                    button:SetAlpha(0.3)
+                    button.overlay:Hide()
+                    local totalSeconds = math.floor(sharedCooldown)
+                    local mins = math.floor(totalSeconds / 60)
+                    local secs = totalSeconds - (mins * 60)
+                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
                 else
-                    -- Normal icon color, full alpha
-                    button:GetNormalTexture():SetVertexColor(1, 1, 1)
+                    -- Ready to use: full alpha, no timer
                     button:SetAlpha(1.0)
+                    button.overlay:Hide()
+                    button.timerText:SetText("")
                 end
+                button:GetNormalTexture():SetVertexColor(1, 1, 1) -- No tint for On Use items
             else
-                -- No buff active
-                button.timerText:SetText("")
-                button:GetNormalTexture():SetVertexColor(1, 1, 1) -- revert to normal color
-                button:SetAlpha(0.3) -- dim to indicate inactive
+                -- Regular consumable
+                if foundTimeLeft > 0 then
+                    -- Buff active
+                    button:SetAlpha(1.0)
+                    local totalSeconds = math.floor(foundTimeLeft)
+                    local mins = math.floor(totalSeconds / 60)
+                    local secs = totalSeconds - (mins * 60)
+                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                    if totalSeconds <= threshold then
+                        button:GetNormalTexture():SetVertexColor(1, 0, 0) -- Red tint
+                    else
+                        button:GetNormalTexture():SetVertexColor(1, 1, 1)
+                    end
+                else
+                    -- No buff active
+                    button.timerText:SetText("")
+                    button:GetNormalTexture():SetVertexColor(1, 1, 1)
+                    button:SetAlpha(0.3)
+                end
             end
         else
             -- Hidden button or no itemID
             if button.timerText then
                 button.timerText:SetText("")
             end
+            if button.overlay then
+                button.overlay:Hide()
+            end
         end
     end
 end
-
-
 
 -- Function to update the GUI
 function RC:UpdateGUI()
@@ -307,7 +342,7 @@ function RC:UpdateGUI()
     local spacing = 5
     local currentX = 5 -- Left padding
     
-    for i = 1, 10 do
+    for i = 1, 15 do
         local button = RC.buttons[i]
         if i <= numButtons then
             local itemID = selected[i]
@@ -365,21 +400,29 @@ function RC:UseConsumable(itemID)
         return
     end
 
+    local data = consumablesDB[itemID]
+    if not data then return end
 
-    local buffID = RaidingConsumesDB.consumablesSelected[itemID]
-    if not buffID then return end
-    
-    if not HasBuff(buffID, RaidingConsumesDB.threshold) then
+    if data.isOnUse then
+        -- For On Use items, always attempt to use if available
         if HasItem(itemID) then
             FindAndUseItem(itemID)
+            lastOnUseTime = GetTime() -- Start shared cooldown
         else
-            local data = consumablesDB[itemID]
-            if data then
-                print("You need to restock on " .. data.name)
-            end
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r You need to restock on " .. data.name)
         end
     else
-        print("Buff is still active.")
+        -- For regular consumables, check buff status
+        local buffID = RaidingConsumesDB.consumablesSelected[itemID]
+        if buffID and not HasBuff(buffID, RaidingConsumesDB.threshold) then
+            if HasItem(itemID) then
+                FindAndUseItem(itemID)
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r You need to restock on " .. data.name)
+            end
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Buff is still active or not selected.")
+        end
     end
 end
 
@@ -392,12 +435,12 @@ local function UseConsumables()
     
     local missingItems = {}
     for itemID, buffID in pairs(RaidingConsumesDB.consumablesSelected) do
-        if not HasBuff(buffID, RaidingConsumesDB.threshold) then
-            if HasItem(itemID) then
-                FindAndUseItem(itemID)
-            else
-                local data = consumablesDB[itemID]
-                if data then
+        local data = consumablesDB[itemID]
+        if not data.isOnUse then
+            if not HasBuff(buffID, RaidingConsumesDB.threshold) then
+                if HasItem(itemID) then
+                    FindAndUseItem(itemID)
+                else
                     table.insert(missingItems, data.name)
                 end
             end
