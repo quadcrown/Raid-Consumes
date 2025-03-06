@@ -54,6 +54,7 @@ local consumablesDB = {
     [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 3600},
     [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 3600},
     [13931] = {buffID = 18194, name = "Nightfin Soup", icon = "Interface\\Icons\\INV_Drink_17", duration = 600},
+    [50237] = {buffID = 45988, name = "Elixir of Greater Nature Power", icon = "Interface\\Icons\\INV_Potion_22", duration = 3600},
     -- Protection Potions (all marked as On Use)
     [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_83", duration = 3600, isOnUse = true},
     [13456] = {buffID = 17544, name = "Greater Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_20", duration = 3600, isOnUse = true},
