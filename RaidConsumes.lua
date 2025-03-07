@@ -74,6 +74,7 @@ local consumablesDB = {
     [20081] = {buffID = 24383, name = "Swiftness of Zanza", icon = "Interface\\Icons\\INV_Potion_31", duration = 7200},
     [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600, isOnUse = true},
     [5634] = {buffID = 6615, name = "Free Action Potion", icon = "Interface\\Icons\\INV_Potion_04", duration = 30, isOnUse = true},
+    [3386] = {buffID = 26677, name = "Elixir of Poison Resistance", icon = "Interface\\Icons\\INV_Potion_12", duration = 30},
 }
 
 -- Saved variables to persist across sessions
