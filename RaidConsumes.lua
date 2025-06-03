@@ -19,11 +19,11 @@ local consumablesDB = {
     [60976] = {buffID = 57042, name = "Danonzo's Tel'Abim Surprise", icon = "Interface\\Icons\\INV_Misc_Food_09", duration = 3600},
     [51711] = {buffID = 18192, name = "Sweet Mountain Berry", icon = "Interface\\Icons\\INV_Misc_Food_40", duration = 3600},
     [13928] = {buffID = 18192, name = "Grilled Squid", icon = "Interface\\Icons\\INV_Misc_Food_13", duration = 600},
-    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_08", duration = 3600},
+    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_73", duration = 3600},
     [20452] = {buffID = 24799, name = "Smoked Desert Dumplings", icon = "Interface\\Icons\\INV_Misc_Food_64", duration = 900},
-    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_11", duration = 3600},
+    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_14", duration = 3600},
     [51267] = {buffID = 24799, name = "Spicy Beef Burrito", icon = "Interface\\Icons\\INV_Misc_Food_49", duration = 3600},
-    [13442] = {buffID = 17528, name = "Mighty Rage Potion", icon = "Interface\\Icons\\INV_Potion_41", duration = 20, isOnUse = true},
+    [13442] = {buffID = 17528, name = "Mighty Rage Potion", icon = "Interface\\Icons\\INV_Potion_125", duration = 20, isOnUse = true},
     [5633]  = {buffID = 6613, name = "Great Rage Potion", icon = "Interface\\Icons\\INV_Potion_21", duration = 20, isOnUse = true},
     -- Tank/Defensive/Stamina consumables
     [13445] = {buffID = 11348, name = "Elixir of Superior Defense", icon = "Interface\\Icons\\INV_Potion_66", duration = 3600},
@@ -38,7 +38,7 @@ local consumablesDB = {
     [12459] = {buffID = 16321, name = "Juju Escape", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 10},
     [12455] = {buffID = 16326, name = "Juju Ember", icon = "Interface\\Icons\\INV_Misc_MonsterScales_15", duration = 20},
     [12457] = {buffID = 16325, name = "Juju Chill", icon = "Interface\\Icons\\INV_Misc_MonsterScales_09", duration = 20},
-    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_08", duration = 3600},
+    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_15", duration = 3600},
     [21023] = {buffID = 25661, name = "Dirge's Kickin' Chimaerok Chops", icon = "Interface\\Icons\\INV_Misc_Food_65", duration = 1200},
     [84040] = {buffID = 45623, name = "Le Fishe Au Chocolat", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600},
     -- Mana user consumables
@@ -54,12 +54,11 @@ local consumablesDB = {
     [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 3600},
     [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 3600},
     [13931] = {buffID = 18194, name = "Nightfin Soup", icon = "Interface\\Icons\\INV_Drink_17", duration = 600},
-    [50237] = {buffID = 45988, name = "Elixir of Greater Nature Power", icon = "Interface\\Icons\\INV_Potion_22", duration = 3600},
     -- Protection Potions (all marked as On Use)
-    [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_83", duration = 3600, isOnUse = true},
+    [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_102", duration = 3600, isOnUse = true},
     [13456] = {buffID = 17544, name = "Greater Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_20", duration = 3600, isOnUse = true},
     [6050]  = {buffID = 7239, name = "Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_13", duration = 1800, isOnUse = true},
-    [13457] = {buffID = 17543, name = "Greater Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_24", duration = 3600, isOnUse = true},
+    [13457] = {buffID = 17543, name = "Greater Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_117", duration = 3600, isOnUse = true},
     [6049]  = {buffID = 7233, name = "Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 1800, isOnUse = true},
     [13460] = {buffID = 17545, name = "Greater Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 3600, isOnUse = true},
     [6051]  = {buffID = 7245, name = "Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 1800, isOnUse = true},
@@ -75,6 +74,10 @@ local consumablesDB = {
     [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600, isOnUse = true},
     [5634] = {buffID = 6615, name = "Free Action Potion", icon = "Interface\\Icons\\INV_Potion_04", duration = 30, isOnUse = true},
     [3386] = {buffID = 26677, name = "Elixir of Poison Resistance", icon = "Interface\\Icons\\INV_Potion_12", duration = 30},
+    [61675] = {buffID = 18194, name = "Nordanaar Herbal Tea", icon = "Interface\\Icons\\INV_Drink_Waterskin_03", duration = 600, isOnUse = true},
+    [9030] = {buffID = 11359, name = "Restorative Potion", icon = "Interface\\Icons\\INV_Potion_118", duration = 30, isOnUse = true},
+    [3387] = {buffID = 3169, name = "Limited Invulnerability Potion", icon = "Interface\\Icons\\INV_Potion_121", duration = 6, isOnUse = true},
+
 }
 
 -- Saved variables to persist across sessions
@@ -219,7 +222,25 @@ RC.ConfigFrame:SetScript("OnDragStop", function()
     _, _, _, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY = RC.ConfigFrame:GetPoint()
 end)
 
--- Create a pool of 10 buttons
+-- Add this function to count items in bags
+local function CountItemInBags(itemID)
+    local count = 0
+    for bag = 0, 4 do
+        for slot = 1, GetContainerNumSlots(bag) do
+            local itemLink = GetContainerItemLink(bag, slot)
+            if itemLink then
+                local startPos, endPos, foundID = string.find(itemLink, "Hitem:(%d+)")
+                if foundID and tonumber(foundID) == itemID then
+                    local _, stackCount = GetContainerItemInfo(bag, slot)
+                    count = count + (stackCount or 1)
+                end
+            end
+        end
+    end
+    return count
+end
+
+-- Modify the button creation in the initialization code
 for i = 1, 15 do
     local button = CreateFrame("Button", nil, RC.ConfigFrame)
     button:SetWidth(32)
@@ -232,7 +253,13 @@ for i = 1, 15 do
         button.timerText:SetPoint("CENTER", button, "CENTER", 0, 0)
         button.timerText:SetText("")  -- Start blank
     end
-
+    
+    -- Add new count text in the bottom right corner
+    button.countText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    button.countText:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
+    button.countText:SetTextColor(1, 1, 1)
+    button.countText:SetText("")
+    
     -- Create overlay texture for active buff effect
     button.overlay = button:CreateTexture(nil, "OVERLAY")
     button.overlay:SetAllPoints()
@@ -256,6 +283,19 @@ function RC:UpdateTimers()
             local data = consumablesDB[itemID]
             local buffID = RaidingConsumesDB.consumablesSelected[itemID]
             local foundTimeLeft = 0
+
+            -- Update item count
+            local itemCount = CountItemInBags(itemID)
+            button.countText:SetText(itemCount)
+            
+            -- Color the count based on quantity
+            if itemCount == 0 then
+                button.countText:SetTextColor(1, 0, 0) -- Red for zero items
+            elseif itemCount <= 3 then
+                button.countText:SetTextColor(1, 0.5, 0) -- Orange for low items
+            else
+                button.countText:SetTextColor(1, 1, 1) -- White for sufficient items
+            end
 
             if buffID then
                 for auraIndex = 0, 31 do
@@ -320,6 +360,9 @@ function RC:UpdateTimers()
             if button.timerText then
                 button.timerText:SetText("")
             end
+            if button.countText then
+                button.countText:SetText("")
+            end
             if button.overlay then
                 button.overlay:Hide()
             end
@@ -328,6 +371,7 @@ function RC:UpdateTimers()
 end
 
 -- Function to update the GUI
+-- Modify the UpdateGUI function to update counts
 function RC:UpdateGUI()
     local selected = {}
     for itemID, _ in pairs(RaidingConsumesDB.consumablesSelected) do
@@ -352,6 +396,19 @@ function RC:UpdateGUI()
             button:SetNormalTexture(icon)
             button.itemID = itemID
             
+            -- Count items and update the count text
+            local itemCount = CountItemInBags(itemID)
+            button.countText:SetText(itemCount)
+            
+            -- Color the count based on quantity
+            if itemCount == 0 then
+                button.countText:SetTextColor(1, 0, 0) -- Red for zero items
+            elseif itemCount <= 3 then
+                button.countText:SetTextColor(1, 0.5, 0) -- Orange for low items
+            else
+                button.countText:SetTextColor(1, 1, 1) -- White for sufficient items
+            end
+            
             -- OnClick to use consumable
             button:SetScript("OnClick", function()
                 RC:UseConsumable(itemID)
@@ -372,7 +429,7 @@ function RC:UpdateGUI()
             button:SetPoint("TOPLEFT", RC.ConfigFrame, "TOPLEFT", currentX, -8)
             button:Show()
             
-            -- >>> SET ALPHA BASED ON BUFF ACTIVE OR NOT <<<
+            -- >>> SET ALPHA BASED ON BUFF ACTIVE OR NOT <
             local buffID = RaidingConsumesDB.consumablesSelected[itemID]
             if HasBuff(buffID, RaidingConsumesDB.threshold) then
                 button:SetAlpha(1.0)  -- Buff is considered active above threshold
