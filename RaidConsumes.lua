@@ -2,10 +2,19 @@
 local lastOnUseTime = 0
 local ON_USE_COOLDOWN = 120 -- 2 minutes in seconds
 
+-- Individual cooldown tracking for special items
+local individualCooldowns = {} -- itemID -> timestamp when used
+local JUJU_COOLDOWN = 60 -- 1 minute for Juju items
+local NORDANAAR_COOLDOWN = 120 -- 2 minutes for Nordanaar Herbal Tea
+
+-- Table to track pending on-use items (itemID -> timestamp when used)
+local pendingOnUseItems = {}
+local PENDING_TIMEOUT = 5 -- 5 seconds to detect if buff appeared
+
 -- Complete database of consumables: itemID -> {buffID, name, icon, duration, isOnUse}
 local consumablesDB = {
     -- Melee/ranged power/crit consumables
-    [12451] = {buffID = 16323, name = "Juju Power", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600},
+    [12451] = {buffID = 16323, name = "Juju Power", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 1800},
     [9206]  = {buffID = 11405, name = "Elixir of Giants", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600},
     [12820] = {buffID = 17038, name = "Winterfall Firewater", icon = "Interface\\Icons\\INV_Potion_92", duration = 1200},
     [12460] = {buffID = 16329, name = "Juju Might", icon = "Interface\\Icons\\INV_Misc_MonsterScales_07", duration = 600},
@@ -13,16 +22,16 @@ local consumablesDB = {
     [13452] = {buffID = 17538, name = "Elixir of the Mongoose", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600},
     [9187]  = {buffID = 11334, name = "Elixir of Greater Agility", icon = "Interface\\Icons\\INV_Potion_94", duration = 3600},
     [8410]  = {buffID = 10667, name = "R.O.I.D.S", icon = "Interface\\Icons\\INV_Stone_15", duration = 3600},
-    [8412]  = {buffID = 10669, name = "Ground Scorpok Assay", icon = "Interface\\Icons\\INV_Misc_Dust_02", duration = 1800},
-    [5206]  = {buffID = 5665, name = "Bogling Root", icon = "Interface\\Icons\\INV_Misc_Herb_07", duration = 1800},
+    [8412]  = {buffID = 10669, name = "Ground Scorpok Assay", icon = "Interface\\Icons\\INV_Misc_Dust_02", duration = 3600},
+    [5206]  = {buffID = 5665, name = "Bogling Root", icon = "Interface\\Icons\\INV_Misc_Herb_07", duration = 600},
     [12450] = {buffID = 16322, name = "Juju Flurry", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 20, isOnUse = true},
-    [60976] = {buffID = 57042, name = "Danonzo's Tel'Abim Surprise", icon = "Interface\\Icons\\INV_Misc_Food_09", duration = 3600},
-    [51711] = {buffID = 18192, name = "Sweet Mountain Berry", icon = "Interface\\Icons\\INV_Misc_Food_40", duration = 3600},
+    [60976] = {buffID = 57042, name = "Danonzo's Tel'Abim Surprise", icon = "Interface\\Icons\\INV_Misc_Food_09", duration = 900},
+    [51711] = {buffID = 18192, name = "Sweet Mountain Berry", icon = "Interface\\Icons\\INV_Misc_Food_40", duration = 600},
     [13928] = {buffID = 18192, name = "Grilled Squid", icon = "Interface\\Icons\\INV_Misc_Food_13", duration = 600},
-    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_73", duration = 3600},
+    [60978] = {buffID = 57046, name = "Danonzo's Tel'Abim Medley", icon = "Interface\\Icons\\INV_Misc_Food_73", duration = 900},
     [20452] = {buffID = 24799, name = "Smoked Desert Dumplings", icon = "Interface\\Icons\\INV_Misc_Food_64", duration = 900},
-    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_14", duration = 3600},
-    [51267] = {buffID = 24799, name = "Spicy Beef Burrito", icon = "Interface\\Icons\\INV_Misc_Food_49", duration = 3600},
+    [51720] = {buffID = 24799, name = "Power Mushroom", icon = "Interface\\Icons\\INV_Mushroom_14", duration = 900},
+    [51267] = {buffID = 24799, name = "Spicy Beef Burrito", icon = "Interface\\Icons\\INV_Misc_Food_49", duration = 900},
     [13442] = {buffID = 17528, name = "Mighty Rage Potion", icon = "Interface\\Icons\\INV_Potion_125", duration = 20, isOnUse = true},
     [5633]  = {buffID = 6613, name = "Great Rage Potion", icon = "Interface\\Icons\\INV_Potion_21", duration = 20, isOnUse = true},
     -- Tank/Defensive/Stamina consumables
@@ -31,52 +40,53 @@ local consumablesDB = {
     [20079] = {buffID = 24382, name = "Spirit of Zanza", icon = "Interface\\Icons\\INV_Potion_30", duration = 7200},
     [13510] = {buffID = 17626, name = "Flask of the Titans", icon = "Interface\\Icons\\INV_Potion_62", duration = 7200},
     [9088]  = {buffID = 11371, name = "Gift of Arthas", icon = "Interface\\Icons\\INV_Potion_28", duration = 1800},
-    [61175] = {buffID = 57107, name = "Medivh's Merlot Blue", icon = "Interface\\Icons\\INV_Potion_61", duration = 3600},
-    [61174] = {buffID = 57106, name = "Medivh's Merlot", icon = "Interface\\Icons\\INV_Misc_Ribbon_01", duration = 3600},
+    [61175] = {buffID = 57107, name = "Medivh's Merlot Blue", icon = "Interface\\Icons\\INV_Potion_61", duration = 900},
+    [61174] = {buffID = 57106, name = "Medivh's Merlot", icon = "Interface\\Icons\\INV_Misc_Ribbon_01", duration = 900},
     [10305] = {buffID = 12175, name = "Scroll of Protection IV", icon = "Interface\\Icons\\INV_Scroll_07", duration = 1800},
     [21151] = {buffID = 25804, name = "Rumsey Rum Black Label", icon = "Interface\\Icons\\INV_Drink_04", duration = 900},
     [12459] = {buffID = 16321, name = "Juju Escape", icon = "Interface\\Icons\\INV_Misc_MonsterScales_17", duration = 10},
     [12455] = {buffID = 16326, name = "Juju Ember", icon = "Interface\\Icons\\INV_Misc_MonsterScales_15", duration = 20},
     [12457] = {buffID = 16325, name = "Juju Chill", icon = "Interface\\Icons\\INV_Misc_MonsterScales_09", duration = 20},
-    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_15", duration = 3600},
-    [21023] = {buffID = 25661, name = "Dirge's Kickin' Chimaerok Chops", icon = "Interface\\Icons\\INV_Misc_Food_65", duration = 1200},
-    [84040] = {buffID = 45623, name = "Le Fishe Au Chocolat", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 3600},
+    [51717] = {buffID = 25661, name = "Hardened Mushroom", icon = "Interface\\Icons\\INV_Mushroom_15", duration = 900},
+    [21023] = {buffID = 25661, name = "Dirge's Kickin' Chimaerok Chops", icon = "Interface\\Icons\\INV_Misc_Food_65", duration = 900},
+    [84040] = {buffID = 45623, name = "Le Fishe Au Chocolat", icon = "Interface\\Icons\\INV_Misc_MonsterScales_11", duration = 900},
     -- Mana user consumables
     [61224] = {buffID = 45427, name = "Dreamshard Elixir", icon = "Interface\\Icons\\INV_Potion_12", duration = 3600},
     [13454] = {buffID = 17539, name = "Greater Arcane Elixir", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600},
-    [61423] = {buffID = 45489, name = "Dreamtonic", icon = "Interface\\Icons\\INV_Potion_10", duration = 3600},
+    [61423] = {buffID = 45489, name = "Dreamtonic", icon = "Interface\\Icons\\INV_Potion_10", duration = 1200},
     [13512] = {buffID = 17628, name = "Flask of Supreme Power", icon = "Interface\\Icons\\INV_Potion_41", duration = 7200},
     [20007] = {buffID = 24363, name = "Mageblood Potion", icon = "Interface\\Icons\\INV_Potion_45", duration = 3600},
     [8423]  = {buffID = 10692, name = "Cerebral Cortex Compound", icon = "Interface\\Icons\\INV_Potion_32", duration = 3600},
     [9264]  = {buffID = 11474, name = "Elixir of Shadow Power", icon = "Interface\\Icons\\INV_Potion_46", duration = 1800},
-    [51718] = {buffID = 22731, name = "Juicy Striped Melon", icon = "Interface\\Icons\\INV_Misc_Food_22", duration = 3600},
+    [51718] = {buffID = 22731, name = "Juicy Striped Melon", icon = "Interface\\Icons\\INV_Misc_Food_22", duration = 900},
     [13511] = {buffID = 17627, name = "Flask of Distilled Wisdom", icon = "Interface\\Icons\\INV_Potion_97", duration = 7200},
-    [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 3600},
-    [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 3600},
+    [60977] = {buffID = 57043, name = "Danonzo's Tel'Abim Delight", icon = "Interface\\Icons\\INV_Drink_17", duration = 900},
+    [12458] = {buffID = 16327, name = "Juju Guile", icon = "Interface\\Icons\\INV_Misc_MonsterScales_13", duration = 1800},
     [13931] = {buffID = 18194, name = "Nightfin Soup", icon = "Interface\\Icons\\INV_Drink_17", duration = 600},
     -- Protection Potions (all marked as On Use)
     [13461] = {buffID = 17549, name = "Greater Arcane Protection Potion", icon = "Interface\\Icons\\INV_Potion_102", duration = 3600, isOnUse = true},
     [13456] = {buffID = 17544, name = "Greater Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_20", duration = 3600, isOnUse = true},
-    [6050]  = {buffID = 7239, name = "Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_13", duration = 1800, isOnUse = true},
+    [6050]  = {buffID = 7239, name = "Frost Protection Potion", icon = "Interface\\Icons\\INV_Potion_13", duration = 3600, isOnUse = true},
     [13457] = {buffID = 17543, name = "Greater Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_117", duration = 3600, isOnUse = true},
-    [6049]  = {buffID = 7233, name = "Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 1800, isOnUse = true},
+    [6049]  = {buffID = 7233, name = "Fire Protection Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 3600, isOnUse = true},
     [13460] = {buffID = 17545, name = "Greater Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 3600, isOnUse = true},
-    [6051]  = {buffID = 7245, name = "Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 1800, isOnUse = true},
+    [6051]  = {buffID = 7245, name = "Holy Protection Potion", icon = "Interface\\Icons\\INV_Potion_09", duration = 3600, isOnUse = true},
     [13458] = {buffID = 17546, name = "Greater Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_22", duration = 3600, isOnUse = true},
-    [6052]  = {buffID = 7254, name = "Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_06", duration = 1800, isOnUse = true},
+    [6052]  = {buffID = 7254, name = "Nature Protection Potion", icon = "Interface\\Icons\\INV_Potion_06", duration = 3600, isOnUse = true},
     [13459] = {buffID = 17548, name = "Greater Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_23", duration = 3600, isOnUse = true},
-    [6048]  = {buffID = 7242, name = "Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_44", duration = 1800, isOnUse = true},
+    [6048]  = {buffID = 7242, name = "Shadow Protection Potion", icon = "Interface\\Icons\\INV_Potion_44", duration = 3600, isOnUse = true},
     [9036]  = {buffID = 11364, name = "Magic Resistance Potion", icon = "Interface\\Icons\\INV_Potion_16", duration = 180, isOnUse = true},
     [13455] = {buffID = 17540, name = "Greater Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_69", duration = 120, isOnUse = true},
-    [4623]  = {buffID = 4941, name = "Lesser Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_67", duration = 120, isOnUse = true},
+    [4623]  = {buffID = 4941, name = "Lesser Stoneshield Potion", icon = "Interface\\Icons\\INV_Potion_67", duration = 90, isOnUse = true},
     -- Uncategorized
     [20081] = {buffID = 24383, name = "Swiftness of Zanza", icon = "Interface\\Icons\\INV_Potion_31", duration = 7200},
-    [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 3600, isOnUse = true},
+    [61181] = {buffID = 45425, name = "Potion of Quickness", icon = "Interface\\Icons\\INV_Potion_25", duration = 30, isOnUse = true},
     [5634] = {buffID = 6615, name = "Free Action Potion", icon = "Interface\\Icons\\INV_Potion_04", duration = 30, isOnUse = true},
-    [3386] = {buffID = 26677, name = "Elixir of Poison Resistance", icon = "Interface\\Icons\\INV_Potion_12", duration = 30},
-    [61675] = {buffID = 18194, name = "Nordanaar Herbal Tea", icon = "Interface\\Icons\\INV_Drink_Waterskin_03", duration = 600, isOnUse = true},
+    [3386] = {buffID = 26677, name = "Elixir of Poison Resistance", icon = "Interface\\Icons\\INV_Potion_12", duration = 1},
+    [61675] = {buffID = nil, name = "Nordanaar Herbal Tea", icon = "Interface\\Icons\\INV_Drink_Waterskin_03", duration = 0, isOnUse = true, isInstantEffect = true},
     [9030] = {buffID = 11359, name = "Restorative Potion", icon = "Interface\\Icons\\INV_Potion_118", duration = 30, isOnUse = true},
     [3387] = {buffID = 3169, name = "Limited Invulnerability Potion", icon = "Interface\\Icons\\INV_Potion_121", duration = 6, isOnUse = true},
+    [12217] = {buffID = 15852, name = "Dragonbreath Chili", icon = "Interface\\Icons\\INV_Drink_23", duration = 600},
 
 }
 
@@ -85,7 +95,14 @@ RaidingConsumesDB = RaidingConsumesDB or {
     consumablesSelected = {}, -- Table of itemID -> buffID
     threshold = 120,          -- Default reapplication threshold in seconds
     PosX = 200,               -- GUI X position
-    PosY = -200               -- GUI Y position
+    PosY = -200,              -- GUI Y position
+    showOnUseOnly = false,    -- Filter to show only On-Use consumables
+    verticalLayout = false,   -- Use vertical layout (top to bottom) instead of horizontal
+    separateConsumes = false, -- NEW: Use separate windows for on-use and regular consumables
+    onUsePosX = 200,          -- NEW: On-use window X position
+    onUsePosY = -200,         -- NEW: On-use window Y position
+    regularPosX = 200,        -- NEW: Regular consumables window X position
+    regularPosY = -300        -- NEW: Regular consumables window Y position
 }
 
 -- ### Helper Functions
@@ -122,6 +139,20 @@ local function HasBuff(buffID, threshold)
                 if timeleft > threshold then
                     return true
                 end
+            end
+        end
+    end
+    return false
+end
+
+-- **Check if a specific buff exists (regardless of time left)**
+local function HasBuffActive(buffID)
+    for i = 0, 31 do
+        local id = GetPlayerBuff(i, "HELPFUL")
+        if id > -1 then
+            local buff = GetPlayerBuffID(i)
+            if buff == buffID then
+                return true
             end
         end
     end
@@ -177,49 +208,129 @@ local function IsEatingOrDrinking()
     return false
 end
 
+-- Function to check if an item has individual cooldown management
+local function HasIndividualCooldown(itemID)
+    -- Juju items (all start with 124 except 12451 which is Juju Power - not on individual cooldown)
+    if itemID == 12450 or itemID == 12455 or itemID == 12457 or itemID == 12458 or itemID == 12459 or itemID == 12460 then
+        return true, JUJU_COOLDOWN
+    end
+    -- Nordanaar Herbal Tea
+    if itemID == 61675 then
+        return true, NORDANAAR_COOLDOWN
+    end
+    return false, 0
+end
 
--- ### Global Variables for Restock Message Cooldown
-local lastMessageTime = 0
-local COOLDOWN_TIME = 10 -- 10-second cooldown for restock messages
+-- Function to get individual cooldown remaining for an item
+local function GetIndividualCooldown(itemID)
+    local hasIndividual, cooldownDuration = HasIndividualCooldown(itemID)
+    if not hasIndividual then
+        return 0
+    end
+    
+    local lastUsed = individualCooldowns[itemID] or 0
+    local currentTime = GetTime()
+    return math.max(0, cooldownDuration - (currentTime - lastUsed))
+end
+local function CheckPendingOnUseItems()
+    local currentTime = GetTime()
+    
+    for itemID, useTime in pairs(pendingOnUseItems) do
+        local data = consumablesDB[itemID]
+        if data and data.isOnUse then
+            local buffID = RaidingConsumesDB.consumablesSelected[itemID]
+            
+            if buffID and HasBuffActive(buffID) then
+                -- Buff appeared! Start the appropriate cooldown
+                local hasIndividual, _ = HasIndividualCooldown(itemID)
+                if hasIndividual then
+                    individualCooldowns[itemID] = useTime
+                else
+                    lastOnUseTime = useTime
+                end
+                pendingOnUseItems[itemID] = nil -- Remove from pending
+            elseif (currentTime - useTime) > PENDING_TIMEOUT then
+                -- Timeout reached, item use failed - remove from pending without starting cooldown
+                pendingOnUseItems[itemID] = nil
+            end
+        end
+    end
+end
 
 -- ### Core Functionality
 
 -- Create the addon frame and GUI
 local RC = CreateFrame("Frame")
 RC.ConfigFrame = CreateFrame("Frame", nil, UIParent)
+RC.OnUseFrame = CreateFrame("Frame", nil, UIParent) -- NEW: Separate frame for on-use consumables
+RC.RegularFrame = CreateFrame("Frame", nil, UIParent) -- NEW: Separate frame for regular consumables
 RC.buttons = {}
--- In your initialization code somewhere:
--- Somewhere in your initialization code:
+RC.onUseButtons = {} -- NEW: Buttons for on-use frame
+RC.regularButtons = {} -- NEW: Buttons for regular frame
+
 RC.ConfigFrame:RegisterEvent("PLAYER_AURAS_CHANGED")
+RC.ConfigFrame:RegisterEvent("UNIT_COMBAT")
+RC.ConfigFrame:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
 RC.ConfigFrame:SetScript("OnEvent", function()
     if event == "PLAYER_AURAS_CHANGED" then
+        CheckPendingOnUseItems() -- Check if any pending items got their buffs
         RC:UpdateGUI()
+    elseif event == "UNIT_COMBAT" then
+        -- Handle Nordanaar Herbal Tea healing confirmation
+        if arg1 == "player" and arg2 == "HEAL" and arg4 then
+            RC:HandleTeaHealing(arg4)
+        end
+    elseif event == "CHAT_MSG_COMBAT_SELF_HITS" then
+        -- Alternative method: parse chat message for tea healing
+        if arg1 and string.find(arg1, "Your Tea heals you for") then
+            RC:HandleTeaHealingFromChat(arg1)
+        end
     end
 end)
 
+-- Setup function for frames
+local function SetupFrame(frame, posX, posY)
+    local backdrop = {
+        bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 3, right = 5, top = 3, bottom = 5 }
+    }
+    frame:SetBackdrop(backdrop)
+    frame:SetBackdropColor(0, 0, 0, 0.8)
+    frame:SetWidth(100)
+    frame:SetHeight(48)
+    frame:SetMovable(1)
+    frame:EnableMouse(1)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", posX, posY)
+    frame:Hide()
+end
 
-
-
--- Setup the main frame (modeled after EZP.ConfigFrame)
-local backdrop = {
-    bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true,
-    tileSize = 16,
-    edgeSize = 16,
-    insets = { left = 3, right = 5, top = 3, bottom = 5 }
-}
-RC.ConfigFrame:SetBackdrop(backdrop)
-RC.ConfigFrame:SetBackdropColor(0, 0, 0, 0.8)
-RC.ConfigFrame:SetWidth(100) -- Initial width for empty state
-RC.ConfigFrame:SetHeight(48)
-RC.ConfigFrame:SetMovable(1)
-RC.ConfigFrame:EnableMouse(1)
-RC.ConfigFrame:RegisterForDrag("LeftButton")
+-- Setup the main frame
+SetupFrame(RC.ConfigFrame, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY)
 RC.ConfigFrame:SetScript("OnDragStart", function() RC.ConfigFrame:StartMoving() end)
 RC.ConfigFrame:SetScript("OnDragStop", function()
     RC.ConfigFrame:StopMovingOrSizing()
     _, _, _, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY = RC.ConfigFrame:GetPoint()
+end)
+
+-- Setup the on-use frame
+SetupFrame(RC.OnUseFrame, RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY)
+RC.OnUseFrame:SetScript("OnDragStart", function() RC.OnUseFrame:StartMoving() end)
+RC.OnUseFrame:SetScript("OnDragStop", function()
+    RC.OnUseFrame:StopMovingOrSizing()
+    _, _, _, RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY = RC.OnUseFrame:GetPoint()
+end)
+
+-- Setup the regular frame
+SetupFrame(RC.RegularFrame, RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY)
+RC.RegularFrame:SetScript("OnDragStart", function() RC.RegularFrame:StartMoving() end)
+RC.RegularFrame:SetScript("OnDragStop", function()
+    RC.RegularFrame:StopMovingOrSizing()
+    _, _, _, RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY = RC.RegularFrame:GetPoint()
 end)
 
 -- Add this function to count items in bags
@@ -240,33 +351,55 @@ local function CountItemInBags(itemID)
     return count
 end
 
--- Modify the button creation in the initialization code
-for i = 1, 15 do
-    local button = CreateFrame("Button", nil, RC.ConfigFrame)
-    button:SetWidth(32)
-    button:SetHeight(32)
-    button:Hide()
+-- Function to create buttons for a specific frame
+local function CreateButtonsForFrame(frame, buttonTable, maxButtons)
+    for i = 1, maxButtons do
+        local button = CreateFrame("Button", nil, frame)
+        button:SetWidth(32)
+        button:SetHeight(32)
+        button:Hide()
 
-    -- Create (or reuse) a FontString for the timer
-    if not button.timerText then
         button.timerText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
         button.timerText:SetPoint("CENTER", button, "CENTER", 0, 0)
-        button.timerText:SetText("")  -- Start blank
-    end
-    
-    -- Add new count text in the bottom right corner
-    button.countText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    button.countText:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
-    button.countText:SetTextColor(1, 1, 1)
-    button.countText:SetText("")
-    
-    -- Create overlay texture for active buff effect
-    button.overlay = button:CreateTexture(nil, "OVERLAY")
-    button.overlay:SetAllPoints()
-    button.overlay:SetTexture(0, 1, 0, 0.3) -- Green with 30% opacity
-    button.overlay:Hide()
+        button.timerText:SetText("")
 
-    table.insert(RC.buttons, button)
+        button.countText = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        button.countText:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
+        button.countText:SetTextColor(1, 1, 1)
+        button.countText:SetText("")
+
+        button.overlay = button:CreateTexture(nil, "OVERLAY")
+        button.overlay:SetAllPoints()
+        button.overlay:SetTexture(0, 1, 0, 0.3)
+        button.overlay:Hide()
+
+        table.insert(buttonTable, button)
+    end
+end
+
+-- Create buttons for all frames
+CreateButtonsForFrame(RC.ConfigFrame, RC.buttons, 25) -- Extended to 25
+CreateButtonsForFrame(RC.OnUseFrame, RC.onUseButtons, 25)
+CreateButtonsForFrame(RC.RegularFrame, RC.regularButtons, 25)
+
+-- Handle Nordanaar Herbal Tea healing confirmation
+function RC:HandleTeaHealing(healAmount)
+    -- Check if we have a pending Nordanaar Herbal Tea
+    local teaItemID = 61675
+    if pendingOnUseItems[teaItemID] then
+        -- Tea healing detected, start individual cooldown
+        individualCooldowns[teaItemID] = pendingOnUseItems[teaItemID]
+        pendingOnUseItems[teaItemID] = nil
+    end
+end
+
+-- Alternative handler for chat message parsing
+function RC:HandleTeaHealingFromChat(message)
+    -- Parse heal amount from message like "Your Tea heals you for 859."
+    local healAmount = string.match(message, "Your Tea heals you for (%d+)")
+    if healAmount then
+        self:HandleTeaHealing(tonumber(healAmount))
+    end
 end
 
 -- ##################################################
@@ -277,121 +410,266 @@ function RC:UpdateTimers()
     local threshold = RaidingConsumesDB.threshold or 120
     local sharedCooldown = math.max(0, ON_USE_COOLDOWN - (currentTime - lastOnUseTime))
 
-    for i, button in ipairs(self.buttons) do
-        if button:IsShown() and button.itemID then
-            local itemID = button.itemID
-            local data = consumablesDB[itemID]
-            local buffID = RaidingConsumesDB.consumablesSelected[itemID]
-            local foundTimeLeft = 0
+    -- Function to update buttons in a specific table
+    local function UpdateButtonTable(buttonTable)
+        for i, button in ipairs(buttonTable) do
+            if button:IsShown() and button.itemID then
+                local itemID = button.itemID
+                local data = consumablesDB[itemID]
+                local buffID = RaidingConsumesDB.consumablesSelected[itemID]
+                local foundTimeLeft = 0
 
-            -- Update item count
-            local itemCount = CountItemInBags(itemID)
-            button.countText:SetText(itemCount)
-            
-            -- Color the count based on quantity
-            if itemCount == 0 then
-                button.countText:SetTextColor(1, 0, 0) -- Red for zero items
-            elseif itemCount <= 3 then
-                button.countText:SetTextColor(1, 0.5, 0) -- Orange for low items
-            else
-                button.countText:SetTextColor(1, 1, 1) -- White for sufficient items
-            end
+                -- Update item count
+                local itemCount = CountItemInBags(itemID)
+                button.countText:SetText(itemCount)
+                
+                -- Color the count based on quantity
+                if itemCount == 0 then
+                    button.countText:SetTextColor(1, 0, 0) -- Red for zero items
+                elseif itemCount <= 3 then
+                    button.countText:SetTextColor(1, 0.5, 0) -- Orange for low items
+                else
+                    button.countText:SetTextColor(1, 1, 1) -- White for sufficient items
+                end
 
-            if buffID then
-                for auraIndex = 0, 31 do
-                    local buffIndex = GetPlayerBuff(auraIndex, "HELPFUL")
-                    if buffIndex > -1 then
-                        local checkBuffID = GetPlayerBuffID(auraIndex)
-                        if checkBuffID == buffID then
-                            foundTimeLeft = GetPlayerBuffTimeLeft(buffIndex)
-                            break
+                -- Check for active buff
+                if buffID then
+                    for auraIndex = 0, 31 do
+                        local buffIndex = GetPlayerBuff(auraIndex, "HELPFUL")
+                        if buffIndex > -1 then
+                            local checkBuffID = GetPlayerBuffID(auraIndex)
+                            if checkBuffID == buffID then
+                                foundTimeLeft = GetPlayerBuffTimeLeft(buffIndex)
+                                break
+                            end
                         end
                     end
                 end
-            end
 
-            if data.isOnUse then
-                if foundTimeLeft > 0 then
-                    -- Buff active: full alpha, green overlay, buff timer
-                    button:SetAlpha(1.0)
-                    button.overlay:Show()
-                    local totalSeconds = math.floor(foundTimeLeft)
-                    local mins = math.floor(totalSeconds / 60)
-                    local secs = totalSeconds - (mins * 60)
-                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
-                elseif sharedCooldown > 0 then
-                    -- On cooldown: 30% alpha, cooldown timer
-                    button:SetAlpha(0.3)
-                    button.overlay:Hide()
-                    local totalSeconds = math.floor(sharedCooldown)
-                    local mins = math.floor(totalSeconds / 60)
-                    local secs = totalSeconds - (mins * 60)
-                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
-                else
-                    -- Ready to use: full alpha, no timer
-                    button:SetAlpha(1.0)
-                    button.overlay:Hide()
-                    button.timerText:SetText("")
-                end
-                button:GetNormalTexture():SetVertexColor(1, 1, 1) -- No tint for On Use items
-            else
-                -- Regular consumable
-                if foundTimeLeft > 0 then
-                    -- Buff active
-                    button:SetAlpha(1.0)
-                    local totalSeconds = math.floor(foundTimeLeft)
-                    local mins = math.floor(totalSeconds / 60)
-                    local secs = totalSeconds - (mins * 60)
-                    button.timerText:SetText(string.format("%d:%02d", mins, secs))
-                    if totalSeconds <= threshold then
-                        button:GetNormalTexture():SetVertexColor(1, 0, 0) -- Red tint
+                if data.isOnUse then
+                    -- Check if this item is pending (waiting for buff confirmation)
+                    local isPending = pendingOnUseItems[itemID] ~= nil
+                    
+                    -- Check for individual cooldown or shared cooldown
+                    local hasIndividual, _ = HasIndividualCooldown(itemID)
+                    local relevantCooldown = 0
+                    if hasIndividual then
+                        relevantCooldown = GetIndividualCooldown(itemID)
                     else
-                        button:GetNormalTexture():SetVertexColor(1, 1, 1)
+                        relevantCooldown = sharedCooldown
+                    end
+                    
+                    -- Special handling for instant effect items (no buff to show)
+                    if data.isInstantEffect then
+                        if isPending then
+                            -- Item was used but effect not detected yet: yellow overlay, show "WAIT"
+                            button:SetAlpha(1.0)
+                            button.overlay:Show()
+                            button.overlay:SetTexture(1, 1, 0, 0.3) -- Yellow overlay
+                            button.timerText:SetText("WAIT")
+                            button:GetNormalTexture():SetVertexColor(0.8, 0.8, 0.8) -- Slightly dimmed
+                        elseif relevantCooldown > 0 then
+                            -- On cooldown: red overlay, show cooldown timer
+                            button:SetAlpha(1.0)
+                            button.overlay:Show()
+                            button.overlay:SetTexture(1, 0, 0, 0.3) -- Red overlay
+                            local totalSeconds = math.floor(relevantCooldown)
+                            local mins = math.floor(totalSeconds / 60)
+                            local secs = totalSeconds - (mins * 60)
+                            button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                            button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5) -- Dimmed color
+                        else
+                            -- Ready to use: full alpha, no overlay, no timer
+                            button:SetAlpha(1.0)
+                            button.overlay:Hide()
+                            button.timerText:SetText("")
+                            button:GetNormalTexture():SetVertexColor(1, 1, 1) -- Normal color
+                        end
+                    elseif foundTimeLeft > 0 then
+                        -- Buff is active: full alpha, green overlay, show buff timer
+                        button:SetAlpha(1.0)
+                        button.overlay:Show()
+                        button.overlay:SetTexture(0, 1, 0, 0.3) -- Green overlay
+                        local totalSeconds = math.floor(foundTimeLeft)
+                        local mins = math.floor(totalSeconds / 60)
+                        local secs = totalSeconds - (mins * 60)
+                        button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                        button:GetNormalTexture():SetVertexColor(1, 1, 1) -- Normal color
+                    elseif isPending then
+                        -- Item was used but buff not detected yet: yellow overlay, show "WAIT"
+                        button:SetAlpha(1.0)
+                        button.overlay:Show()
+                        button.overlay:SetTexture(1, 1, 0, 0.3) -- Yellow overlay
+                        button.timerText:SetText("WAIT")
+                        button:GetNormalTexture():SetVertexColor(0.8, 0.8, 0.8) -- Slightly dimmed
+                    elseif relevantCooldown > 0 then
+                        -- On cooldown but no buff: red overlay, show cooldown timer
+                        button:SetAlpha(1.0)
+                        button.overlay:Show()
+                        button.overlay:SetTexture(1, 0, 0, 0.3) -- Red overlay
+                        local totalSeconds = math.floor(relevantCooldown)
+                        local mins = math.floor(totalSeconds / 60)
+                        local secs = totalSeconds - (mins * 60)
+                        button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                        button:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5) -- Dimmed color
+                    else
+                        -- Ready to use: full alpha, no overlay, no timer
+                        button:SetAlpha(1.0)
+                        button.overlay:Hide()
+                        button.timerText:SetText("")
+                        button:GetNormalTexture():SetVertexColor(1, 1, 1) -- Normal color
                     end
                 else
-                    -- No buff active
-                    button.timerText:SetText("")
-                    button:GetNormalTexture():SetVertexColor(1, 1, 1)
-                    button:SetAlpha(0.3)
+                    -- Regular consumable (not on-use)
+                    if foundTimeLeft > 0 then
+                        -- Buff active: full alpha, green overlay, show timer
+                        button:SetAlpha(1.0)
+                        button.overlay:Show()
+                        button.overlay:SetTexture(0, 1, 0, 0.3) -- Green overlay
+                        local totalSeconds = math.floor(foundTimeLeft)
+                        local mins = math.floor(totalSeconds / 60)
+                        local secs = totalSeconds - (mins * 60)
+                        button.timerText:SetText(string.format("%d:%02d", mins, secs))
+                        if totalSeconds <= threshold then
+                            button:GetNormalTexture():SetVertexColor(1, 0.5, 0) -- Orange tint when low
+                        else
+                            button:GetNormalTexture():SetVertexColor(1, 1, 1) -- Normal color
+                        end
+                    else
+                        -- No buff active: dimmed, no overlay, no timer
+                        button:SetAlpha(0.3)
+                        button.overlay:Hide()
+                        button.timerText:SetText("")
+                        button:GetNormalTexture():SetVertexColor(1, 1, 1) -- Normal color
+                    end
                 end
-            end
-        else
-            -- Hidden button or no itemID
-            if button.timerText then
-                button.timerText:SetText("")
-            end
-            if button.countText then
-                button.countText:SetText("")
-            end
-            if button.overlay then
-                button.overlay:Hide()
+            else
+                -- Hidden button or no itemID
+                if button.timerText then
+                    button.timerText:SetText("")
+                end
+                if button.countText then
+                    button.countText:SetText("")
+                end
+                if button.overlay then
+                    button.overlay:Hide()
+                end
             end
         end
     end
+    
+    -- Update all button tables
+    UpdateButtonTable(self.buttons)
+    UpdateButtonTable(self.onUseButtons)
+    UpdateButtonTable(self.regularButtons)
 end
 
 -- Function to update the GUI
 -- Modify the UpdateGUI function to update counts
 function RC:UpdateGUI()
+    if RaidingConsumesDB.separateConsumes then
+        self:UpdateSeparateGUI()
+    else
+        self:UpdateSingleGUI()
+    end
+end
+
+-- Update single GUI (original functionality)
+function RC:UpdateSingleGUI()
+    -- Hide separate frames
+    RC.OnUseFrame:Hide()
+    RC.RegularFrame:Hide()
+    
     local selected = {}
     for itemID, _ in pairs(RaidingConsumesDB.consumablesSelected) do
-        table.insert(selected, itemID)
+        -- Apply filter if showOnUseOnly is enabled
+        if RaidingConsumesDB.showOnUseOnly then
+            local data = consumablesDB[itemID]
+            if data and data.isOnUse then
+                table.insert(selected, itemID)
+            end
+        else
+            table.insert(selected, itemID)
+        end
     end
     table.sort(selected, function(a, b)
         return consumablesDB[a].name < consumablesDB[b].name
     end)
     
     local numButtons = 0
-    for _ in pairs(selected) do numButtons = numButtons + 1 end -- Count manually for Vanilla Lua
+    for _ in pairs(selected) do numButtons = numButtons + 1 end
     
+    self:UpdateFrameButtons(RC.ConfigFrame, RC.buttons, selected, numButtons)
+    
+    -- Show main frame if we have buttons
+    if numButtons > 0 then
+        RC.ConfigFrame:Show()
+    else
+        RC.ConfigFrame:Hide()
+    end
+end
+
+-- Update separate GUI (new functionality)
+function RC:UpdateSeparateGUI()
+    -- Hide main frame
+    RC.ConfigFrame:Hide()
+    
+    local onUseItems = {}
+    local regularItems = {}
+    
+    for itemID, _ in pairs(RaidingConsumesDB.consumablesSelected) do
+        local data = consumablesDB[itemID]
+        if data then
+            if data.isOnUse then
+                table.insert(onUseItems, itemID)
+            else
+                table.insert(regularItems, itemID)
+            end
+        end
+    end
+    
+    -- Sort both lists
+    table.sort(onUseItems, function(a, b)
+        return consumablesDB[a].name < consumablesDB[b].name
+    end)
+    table.sort(regularItems, function(a, b)
+        return consumablesDB[a].name < consumablesDB[b].name
+    end)
+    
+    local onUseCount = 0
+    for _ in pairs(onUseItems) do onUseCount = onUseCount + 1 end
+    
+    local regularCount = 0
+    for _ in pairs(regularItems) do regularCount = regularCount + 1 end
+    
+    -- Update both frames
+    self:UpdateFrameButtons(RC.OnUseFrame, RC.onUseButtons, onUseItems, onUseCount)
+    self:UpdateFrameButtons(RC.RegularFrame, RC.regularButtons, regularItems, regularCount)
+    
+    -- Show frames if they have buttons
+    if onUseCount > 0 then
+        RC.OnUseFrame:Show()
+    else
+        RC.OnUseFrame:Hide()
+    end
+    
+    if regularCount > 0 then
+        RC.RegularFrame:Show()
+    else
+        RC.RegularFrame:Hide()
+    end
+end
+
+-- Common function to update buttons for any frame
+function RC:UpdateFrameButtons(frame, buttons, itemList, numButtons)
     local buttonSize = 32
     local spacing = 5
-    local currentX = 5 -- Left padding
+    local padding = 5
     
-    for i = 1, 15 do
-        local button = RC.buttons[i]
+    for i = 1, 25 do -- Extended to 25
+        local button = buttons[i]
         if i <= numButtons then
-            local itemID = selected[i]
+            local itemID = itemList[i]
             local icon = consumablesDB[itemID].icon
             button:SetNormalTexture(icon)
             button.itemID = itemID
@@ -424,30 +702,37 @@ function RC:UpdateGUI()
                 GameTooltip:Hide()
             end)
             
-            -- Position the button
+            -- Position the button based on layout orientation
             button:ClearAllPoints()
-            button:SetPoint("TOPLEFT", RC.ConfigFrame, "TOPLEFT", currentX, -8)
-            button:Show()
-            
-            -- >>> SET ALPHA BASED ON BUFF ACTIVE OR NOT <
-            local buffID = RaidingConsumesDB.consumablesSelected[itemID]
-            if HasBuff(buffID, RaidingConsumesDB.threshold) then
-                button:SetAlpha(1.0)  -- Buff is considered active above threshold
+            if RaidingConsumesDB.verticalLayout then
+                -- Vertical layout: buttons stack top to bottom
+                local currentY = -padding - ((i - 1) * (buttonSize + spacing))
+                button:SetPoint("TOPLEFT", frame, "TOPLEFT", padding, currentY)
             else
-                button:SetAlpha(0.3)  -- Buff not active (or under threshold)
+                -- Horizontal layout: buttons go left to right
+                local currentX = padding + ((i - 1) * (buttonSize + spacing))
+                button:SetPoint("TOPLEFT", frame, "TOPLEFT", currentX, -padding)
             end
-            
-            currentX = currentX + buttonSize + spacing
+            button:Show()
         else
             button:Hide()
         end
     end
     
-    -- Adjust frame width
+    -- Adjust frame dimensions based on layout orientation
     if numButtons > 0 then
-        RC.ConfigFrame:SetWidth(currentX) -- Right edge after last button
+        if RaidingConsumesDB.verticalLayout then
+            -- Vertical layout: fixed width, height grows with buttons
+            frame:SetWidth(buttonSize + (padding * 2))
+            frame:SetHeight((numButtons * (buttonSize + spacing)) - spacing + (padding * 2))
+        else
+            -- Horizontal layout: width grows with buttons, fixed height
+            frame:SetWidth((numButtons * (buttonSize + spacing)) - spacing + (padding * 2))
+            frame:SetHeight(buttonSize + (padding * 2))
+        end
     else
-        RC.ConfigFrame:SetWidth(100) -- Default empty width
+        frame:SetWidth(100) -- Default empty width
+        frame:SetHeight(48)  -- Default empty height
     end
 end
 
@@ -463,10 +748,41 @@ function RC:UseConsumable(itemID)
     if not data then return end
 
     if data.isOnUse then
-        -- For On Use items, always attempt to use if available
+        -- Check for individual or shared cooldown
+        local hasIndividual, cooldownDuration = HasIndividualCooldown(itemID)
+        local relevantCooldown = 0
+        
+        if hasIndividual then
+            relevantCooldown = GetIndividualCooldown(itemID)
+        else
+            local currentTime = GetTime()
+            relevantCooldown = math.max(0, ON_USE_COOLDOWN - (currentTime - lastOnUseTime))
+        end
+        
+        if relevantCooldown > 0 then
+            return
+        end
+        
+        -- Allow retrying even during pending state (for spamming during encounters)
+        
         if HasItem(itemID) then
-            FindAndUseItem(itemID)
-            lastOnUseTime = GetTime() -- Start shared cooldown
+            -- For instant effect items, don't check for existing buffs
+            if data.isInstantEffect then
+                FindAndUseItem(itemID)
+                -- Mark as pending for combat event confirmation
+                pendingOnUseItems[itemID] = GetTime()
+            else
+                -- Check if we already have the buff for regular consumables
+                local buffID = RaidingConsumesDB.consumablesSelected[itemID]
+                if buffID and HasBuffActive(buffID) then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r " .. data.name .. " buff is already active.")
+                    return
+                end
+                
+                FindAndUseItem(itemID)
+                -- Mark as pending instead of immediately starting cooldown
+                pendingOnUseItems[itemID] = GetTime()
+            end
         else
             DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r You need to restock on " .. data.name)
         end
@@ -527,18 +843,29 @@ end
 -- Modified slash command handler
 local function RaidingConsumes_SlashCommand(msg)
     if not msg or msg == "" then
-        if RC.ConfigFrame:IsShown() then
-            RC.ConfigFrame:Hide()
+        if RaidingConsumesDB.separateConsumes then
+            -- Toggle visibility for separate windows
+            if RC.OnUseFrame:IsShown() or RC.RegularFrame:IsShown() then
+                RC.OnUseFrame:Hide()
+                RC.RegularFrame:Hide()
+            else
+                RC:UpdateGUI()
+            end
         else
-            RC:UpdateGUI()
-            RC.ConfigFrame:Show()
+            -- Toggle visibility for single window
+            if RC.ConfigFrame:IsShown() then
+                RC.ConfigFrame:Hide()
+            else
+                RC:UpdateGUI()
+                RC.ConfigFrame:Show()
+            end
         end
         return
     end
     
     local lowerMsg = string.lower(msg)
     local args = strsplit(" ", lowerMsg)
-    local cmd = args[1]                 -- Line 253
+    local cmd = args[1]
     table.remove(args, 1)
 
     if cmd == "list" then
@@ -554,6 +881,18 @@ local function RaidingConsumes_SlashCommand(msg)
         else
             DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Selected consumables: " .. table.concat(selected, ", "))
             DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Current reapplication threshold: " .. (RaidingConsumesDB.threshold or 0) .. " seconds.")
+            if RaidingConsumesDB.separateConsumes then
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Mode: Separate windows for on-use and regular consumables.")
+            elseif RaidingConsumesDB.showOnUseOnly then
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Filter: Showing only On-Use consumables.")
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Filter: Showing all selected consumables.")
+            end
+            if RaidingConsumesDB.verticalLayout then
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Vertical (top to bottom).")
+            else
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Horizontal (left to right).")
+            end
         end
 
     elseif cmd == "threshold" then
@@ -564,6 +903,46 @@ local function RaidingConsumes_SlashCommand(msg)
         else
             DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Usage: /rc threshold [seconds]")
         end
+
+    elseif cmd == "onuseonly" then
+        -- Disable separate consumes if it's enabled
+        if RaidingConsumesDB.separateConsumes then
+            RaidingConsumesDB.separateConsumes = false
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Separate windows disabled.")
+        end
+        
+        RaidingConsumesDB.showOnUseOnly = not RaidingConsumesDB.showOnUseOnly
+        if RaidingConsumesDB.showOnUseOnly then
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI will now show only On-Use consumables.")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI will now show all selected consumables.")
+        end
+        RC:UpdateGUI()
+
+    elseif cmd == "separateconsumes" then
+        -- Disable onuseonly if it's enabled
+        if RaidingConsumesDB.showOnUseOnly then
+            RaidingConsumesDB.showOnUseOnly = false
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use only filter disabled.")
+        end
+        
+        RaidingConsumesDB.separateConsumes = not RaidingConsumesDB.separateConsumes
+        if RaidingConsumesDB.separateConsumes then
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Separate windows enabled: on-use and regular consumables will have their own windows.")
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Separate windows disabled: using single window mode.")
+        end
+        RC:UpdateGUI()
+
+    elseif cmd == "vertical" then
+        RaidingConsumesDB.verticalLayout = true
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to vertical (top to bottom).")
+        RC:UpdateGUI()
+
+    elseif cmd == "horizontal" then
+        RaidingConsumesDB.verticalLayout = false
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to horizontal (left to right).")
+        RC:UpdateGUI()
 
     elseif cmd == "reset" then
         RaidingConsumesDB.consumablesSelected = {}
@@ -599,6 +978,19 @@ local function RaidingConsumes_SlashCommand(msg)
             end
         end
         RC:UpdateGUI()
+
+    elseif cmd == "help" then
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Available commands:")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc|r - Toggle GUI visibility")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc list|r - Show selected consumables and settings")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc threshold [seconds]|r - Set reapplication threshold")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc onuseonly|r - Toggle showing only On-Use consumables in GUI")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc separateconsumes|r - Toggle separate windows for on-use and regular consumables")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc vertical|r - Set GUI to vertical layout (top to bottom)")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc horizontal|r - Set GUI to horizontal layout (left to right)")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc remove [consumable]|r - Remove consumable from selection")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc reset|r - Clear all selected consumables")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc [consumable names]|r - Add consumables to selection")
 
     else
         local input = strsplit(",", msg)
@@ -644,23 +1036,43 @@ local function RaidingConsumes_Initialize()
     RaidingConsumesDB.consumablesSelected = RaidingConsumesDB.consumablesSelected or {}
     RaidingConsumesDB.PosX = RaidingConsumesDB.PosX or 200
     RaidingConsumesDB.PosY = RaidingConsumesDB.PosY or -200
+    RaidingConsumesDB.showOnUseOnly = RaidingConsumesDB.showOnUseOnly or false
+    RaidingConsumesDB.verticalLayout = RaidingConsumesDB.verticalLayout or false
+    RaidingConsumesDB.separateConsumes = RaidingConsumesDB.separateConsumes or false -- NEW: Initialize separate windows option
+    RaidingConsumesDB.onUsePosX = RaidingConsumesDB.onUsePosX or 200 -- NEW: Initialize on-use window position
+    RaidingConsumesDB.onUsePosY = RaidingConsumesDB.onUsePosY or -200
+    RaidingConsumesDB.regularPosX = RaidingConsumesDB.regularPosX or 200 -- NEW: Initialize regular window position
+    RaidingConsumesDB.regularPosY = RaidingConsumesDB.regularPosY or -300
     
-    -- Now that RaidingConsumesDB is guaranteed loaded, position the frame
+    -- Position all frames
     RC.ConfigFrame:ClearAllPoints()
     RC.ConfigFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.PosX, RaidingConsumesDB.PosY)
+    
+    RC.OnUseFrame:ClearAllPoints()
+    RC.OnUseFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY)
+    
+    RC.RegularFrame:ClearAllPoints()
+    RC.RegularFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY)
 
     -- Update the GUI
     RC:UpdateGUI()
 
-    -- Show/Hide if we have selected buffs
+    -- Show/Hide frames based on mode and content
     local count = 0
     for _ in pairs(RaidingConsumesDB.consumablesSelected) do
         count = count + 1
     end
+    
     if count > 0 then
-        RC.ConfigFrame:Show()
+        if RaidingConsumesDB.separateConsumes then
+            -- Separate windows mode will be handled by UpdateGUI
+        else
+            RC.ConfigFrame:Show()
+        end
     else
         RC.ConfigFrame:Hide()
+        RC.OnUseFrame:Hide()
+        RC.RegularFrame:Hide()
     end
 end
 
@@ -685,6 +1097,7 @@ local lastUpdate = 0
 RaidConsumesFrame:SetScript("OnUpdate", function()
     local currentTime = GetTime()
     if (currentTime - lastUpdate) >= updateInterval then
+        CheckPendingOnUseItems() -- Check for pending items that may have timed out
         RC:UpdateTimers()
         lastUpdate = currentTime
     end
