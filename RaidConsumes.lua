@@ -288,6 +288,28 @@ RC.ConfigFrame:SetScript("OnEvent", function()
     end
 end)
 
+-- Function to toggle layout for a specific frame
+local function ToggleFrameLayout(frame)
+    if RaidingConsumesDB.separateConsumes then
+        -- In separate windows mode, toggle individual layouts
+        if frame == RC.OnUseFrame then
+            RaidingConsumesDB.onUseVerticalLayout = not RaidingConsumesDB.onUseVerticalLayout
+            local layoutText = RaidingConsumesDB.onUseVerticalLayout and "vertical" or "horizontal"
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout changed to " .. layoutText .. ".")
+        elseif frame == RC.RegularFrame then
+            RaidingConsumesDB.regularVerticalLayout = not RaidingConsumesDB.regularVerticalLayout
+            local layoutText = RaidingConsumesDB.regularVerticalLayout and "vertical" or "horizontal"
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Regular window layout changed to " .. layoutText .. ".")
+        end
+    else
+        -- In single window mode, toggle main layout
+        RaidingConsumesDB.verticalLayout = not RaidingConsumesDB.verticalLayout
+        local layoutText = RaidingConsumesDB.verticalLayout and "vertical" or "horizontal"
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Main window layout changed to " .. layoutText .. ".")
+    end
+    RC:UpdateGUI()
+end
+
 -- Setup function for frames
 local function SetupFrame(frame, posX, posY)
     local backdrop = {
@@ -306,6 +328,14 @@ local function SetupFrame(frame, posX, posY)
     frame:EnableMouse(1)
     frame:RegisterForDrag("LeftButton")
     frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", posX, posY)
+    
+    -- Add right-click functionality for layout switching
+    frame:SetScript("OnMouseDown", function()
+        if arg1 == "RightButton" then
+            ToggleFrameLayout(this)
+        end
+    end)
+    
     frame:Hide()
 end
 
@@ -666,6 +696,18 @@ function RC:UpdateFrameButtons(frame, buttons, itemList, numButtons)
     local spacing = 5
     local padding = 5
     
+    -- Determine which layout to use based on frame and mode
+    local useVerticalLayout = RaidingConsumesDB.verticalLayout -- Default for single window mode
+    
+    if RaidingConsumesDB.separateConsumes then
+        -- In separate windows mode, use individual layout settings
+        if frame == RC.OnUseFrame then
+            useVerticalLayout = RaidingConsumesDB.onUseVerticalLayout
+        elseif frame == RC.RegularFrame then
+            useVerticalLayout = RaidingConsumesDB.regularVerticalLayout
+        end
+    end
+    
     for i = 1, 25 do -- Extended to 25
         local button = buttons[i]
         if i <= numButtons then
@@ -704,7 +746,7 @@ function RC:UpdateFrameButtons(frame, buttons, itemList, numButtons)
             
             -- Position the button based on layout orientation
             button:ClearAllPoints()
-            if RaidingConsumesDB.verticalLayout then
+            if useVerticalLayout then
                 -- Vertical layout: buttons stack top to bottom
                 local currentY = -padding - ((i - 1) * (buttonSize + spacing))
                 button:SetPoint("TOPLEFT", frame, "TOPLEFT", padding, currentY)
@@ -721,7 +763,7 @@ function RC:UpdateFrameButtons(frame, buttons, itemList, numButtons)
     
     -- Adjust frame dimensions based on layout orientation
     if numButtons > 0 then
-        if RaidingConsumesDB.verticalLayout then
+        if useVerticalLayout then
             -- Vertical layout: fixed width, height grows with buttons
             frame:SetWidth(buttonSize + (padding * 2))
             frame:SetHeight((numButtons * (buttonSize + spacing)) - spacing + (padding * 2))
@@ -883,15 +925,20 @@ local function RaidingConsumes_SlashCommand(msg)
             DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Current reapplication threshold: " .. (RaidingConsumesDB.threshold or 0) .. " seconds.")
             if RaidingConsumesDB.separateConsumes then
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Mode: Separate windows for on-use and regular consumables.")
+                local onUseLayout = RaidingConsumesDB.onUseVerticalLayout and "vertical" or "horizontal"
+                local regularLayout = RaidingConsumesDB.regularVerticalLayout and "vertical" or "horizontal"
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout: " .. onUseLayout .. ", Regular window layout: " .. regularLayout .. ".")
             elseif RaidingConsumesDB.showOnUseOnly then
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Filter: Showing only On-Use consumables.")
             else
                 DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Filter: Showing all selected consumables.")
             end
-            if RaidingConsumesDB.verticalLayout then
-                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Vertical (top to bottom).")
-            else
-                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Horizontal (left to right).")
+            if not RaidingConsumesDB.separateConsumes then
+                if RaidingConsumesDB.verticalLayout then
+                    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Vertical (top to bottom).")
+                else
+                    DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI Layout: Horizontal (left to right).")
+                end
             end
         end
 
@@ -935,13 +982,47 @@ local function RaidingConsumes_SlashCommand(msg)
         RC:UpdateGUI()
 
     elseif cmd == "vertical" then
-        RaidingConsumesDB.verticalLayout = true
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to vertical (top to bottom).")
+        if RaidingConsumesDB.separateConsumes then
+            -- In separate mode, affect both windows
+            RaidingConsumesDB.onUseVerticalLayout = true
+            RaidingConsumesDB.regularVerticalLayout = true
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Both windows changed to vertical layout (top to bottom).")
+        else
+            RaidingConsumesDB.verticalLayout = true
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to vertical (top to bottom).")
+        end
         RC:UpdateGUI()
 
     elseif cmd == "horizontal" then
-        RaidingConsumesDB.verticalLayout = false
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to horizontal (left to right).")
+        if RaidingConsumesDB.separateConsumes then
+            -- In separate mode, affect both windows
+            RaidingConsumesDB.onUseVerticalLayout = false
+            RaidingConsumesDB.regularVerticalLayout = false
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Both windows changed to horizontal layout (left to right).")
+        else
+            RaidingConsumesDB.verticalLayout = false
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r GUI layout changed to horizontal (left to right).")
+        end
+        RC:UpdateGUI()
+
+    elseif cmd == "onusehorizontal" then
+        RaidingConsumesDB.onUseVerticalLayout = false
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout changed to horizontal (left to right).")
+        RC:UpdateGUI()
+
+    elseif cmd == "onusevertical" then
+        RaidingConsumesDB.onUseVerticalLayout = true
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout changed to vertical (top to bottom).")
+        RC:UpdateGUI()
+
+    elseif cmd == "regularhorizontal" then
+        RaidingConsumesDB.regularVerticalLayout = false
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Regular consumables window layout changed to horizontal (left to right).")
+        RC:UpdateGUI()
+
+    elseif cmd == "regularvertical" then
+        RaidingConsumesDB.regularVerticalLayout = true
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Regular consumables window layout changed to vertical (top to bottom).")
         RC:UpdateGUI()
 
     elseif cmd == "reset" then
@@ -988,9 +1069,14 @@ local function RaidingConsumes_SlashCommand(msg)
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc separateconsumes|r - Toggle separate windows for on-use and regular consumables")
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc vertical|r - Set GUI to vertical layout (top to bottom)")
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc horizontal|r - Set GUI to horizontal layout (left to right)")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc onusevertical|r - Set on-use window to vertical layout")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc onusehorizontal|r - Set on-use window to horizontal layout")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc regularvertical|r - Set regular window to vertical layout")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc regularhorizontal|r - Set regular window to horizontal layout")
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc remove [consumable]|r - Remove consumable from selection")
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc reset|r - Clear all selected consumables")
         DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00/rc [consumable names]|r - Add consumables to selection")
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Right-click on any window to toggle its layout!")
 
     else
         local input = strsplit(",", msg)
@@ -1043,6 +1129,8 @@ local function RaidingConsumes_Initialize()
     RaidingConsumesDB.onUsePosY = RaidingConsumesDB.onUsePosY or -200
     RaidingConsumesDB.regularPosX = RaidingConsumesDB.regularPosX or 200 -- NEW: Initialize regular window position
     RaidingConsumesDB.regularPosY = RaidingConsumesDB.regularPosY or -300
+    RaidingConsumesDB.onUseVerticalLayout = RaidingConsumesDB.onUseVerticalLayout or false -- NEW: On-use window layout
+    RaidingConsumesDB.regularVerticalLayout = RaidingConsumesDB.regularVerticalLayout or false -- NEW: Regular window layout
     
     -- Position all frames
     RC.ConfigFrame:ClearAllPoints()
