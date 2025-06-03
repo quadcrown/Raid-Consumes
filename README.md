@@ -165,39 +165,6 @@ Alternatively, use GitHub Addon Manager to automatically install.
 
 ---
 
-## Supported Consumables
-
-### Combat Buffs
-- **Melee/Ranged**: Juju Power, Elixir of the Mongoose, Winterfall Firewater, R.O.I.D.S
-- **Caster**: Greater Arcane Elixir, Flask of Supreme Power, Cerebral Cortex Compound
-- **Tank/Defense**: Elixir of Superior Defense, Flask of the Titans, Gift of Arthas
-
-### Protection Potions (On-Use)
-- **Elemental**: Fire, Frost, Nature, Arcane Protection Potions (Greater and Regular)
-- **Magical**: Shadow, Holy Protection Potions (Greater and Regular)
-- **Physical**: Stoneshield Potions, Magic Resistance Potions
-
-### Special On-Use Items
-- **Combat**: Mighty Rage Potion, Great Rage Potion, Juju Flurry
-- **Utility**: Free Action Potion, Nordanaar Herbal Tea, Restorative Potion
-- **Protection**: Limited Invulnerability Potion, Potion of Quickness
-
-### Food & Temporary Buffs
-- **Stat Foods**: Grilled Squid, Smoked Desert Dumplings, Power Mushrooms
-- **Zanza Buffs**: Spirit/Swiftness of Zanza
-- **Special**: Rumsey Rum Black Label, Dirge's Kickin' Chimaerok Chops
-
-### Juju Items (Individual Cooldowns)
-- **Juju Power** (Attack Power)
-- **Juju Might** (Strength)
-- **Juju Flurry** (Attack Speed - On-Use)
-- **Juju Guile** (Intellect)
-- **Juju Escape** (Dodge)
-- **Juju Ember** (Fire Resistance)
-- **Juju Chill** (Frost Resistance)
-
----
-
 ## Advanced Features
 
 ### Cooldown Management
@@ -248,3 +215,91 @@ Item: Greater Arcane Elixir
 Item ID: 13454
 Buff ID: 17539
 Type: Regular consumable (not on-use)
+
+## Complete List of Supported Consumables
+
+### Melee/Ranged Power/Crit Consumables
+- **Juju Power** - Attack Power buff (30 minutes)
+- **Elixir of Giants** - Strength buff (1 hour)
+- **Winterfall Firewater** - Attack Power buff (20 minutes)
+- **Juju Might** - Strength buff (10 minutes)
+- **Elixir of Demonslaying** - Damage vs Demons (5 minutes)
+- **Elixir of the Mongoose** - Agility & Critical Strike (1 hour)
+- **Elixir of Greater Agility** - Agility buff (1 hour)
+- **R.O.I.D.S** - Strength buff (1 hour)
+- **Ground Scorpok Assay** - Agility buff (1 hour)
+- **Bogling Root** - Stamina buff (10 minutes)
+- **Danonzo's Tel'Abim Surprise** - Stamina & Spirit (15 minutes)
+- **Sweet Mountain Berry** - Agility buff (10 minutes)
+- **Grilled Squid** - Agility buff (10 minutes)
+- **Danonzo's Tel'Abim Medley** - Strength & Stamina (15 minutes)
+- **Smoked Desert Dumplings** - Strength buff (15 minutes)
+- **Power Mushroom** - Strength buff (15 minutes)
+- **Spicy Beef Burrito** - Strength buff (15 minutes)
+- **Dragonbreath Chili** - Fire damage proc (10 minutes)
+
+### Tank/Defensive/Stamina Consumables
+- **Elixir of Superior Defense** - Armor buff (1 hour)
+- **Elixir of Fortitude** - Health buff (1 hour)
+- **Spirit of Zanza** - Stamina & Spirit (2 hours)
+- **Flask of the Titans** - Health buff (2 hours)
+- **Gift of Arthas** - Strength & Stamina (30 minutes)
+- **Medivh's Merlot Blue** - Intellect & Stamina (15 minutes)
+- **Medivh's Merlot** - Spirit & Stamina (15 minutes)
+- **Scroll of Protection IV** - Armor buff (30 minutes)
+- **Rumsey Rum Black Label** - Stamina buff (15 minutes)
+- **Hardened Mushroom** - Stamina buff (15 minutes)
+- **Dirge's Kickin' Chimaerok Chops** - Stamina buff (15 minutes)
+- **Le Fishe Au Chocolat** - Stamina & Spirit (15 minutes)
+
+### Mana User Consumables
+- **Dreamshard Elixir** - Mana regeneration (1 hour)
+- **Greater Arcane Elixir** - Spell damage (1 hour)
+- **Dreamtonic** - Mana regeneration (20 minutes)
+- **Flask of Supreme Power** - Spell damage (2 hours)
+- **Mageblood Potion** - Mana regeneration (1 hour)
+- **Cerebral Cortex Compound** - Intellect buff (1 hour)
+- **Elixir of Shadow Power** - Shadow spell damage (30 minutes)
+- **Juicy Striped Melon** - Intellect buff (15 minutes)
+- **Flask of Distilled Wisdom** - Intellect buff (2 hours)
+- **Danonzo's Tel'Abim Delight** - Intellect & Spirit (15 minutes)
+- **Juju Guile** - Intellect buff (30 minutes)
+- **Nightfin Soup** - Mana regeneration (10 minutes)
+
+### On-Use Protection Potions
+- **Greater Arcane Protection Potion** - Arcane resistance (1 hour)
+- **Greater Frost Protection Potion** - Frost resistance (1 hour)
+- **Frost Protection Potion** - Frost resistance (1 hour)
+- **Greater Fire Protection Potion** - Fire resistance (1 hour)
+- **Fire Protection Potion** - Fire resistance (1 hour)
+- **Greater Holy Protection Potion** - Holy resistance (1 hour)
+- **Holy Protection Potion** - Holy resistance (1 hour)
+- **Greater Nature Protection Potion** - Nature resistance (1 hour)
+- **Nature Protection Potion** - Nature resistance (1 hour)
+- **Greater Shadow Protection Potion** - Shadow resistance (1 hour)
+- **Shadow Protection Potion** - Shadow resistance (1 hour)
+- **Magic Resistance Potion** - All magic resistance (3 minutes)
+- **Greater Stoneshield Potion** - Armor buff (2 minutes)
+- **Lesser Stoneshield Potion** - Armor buff (90 seconds)
+
+### On-Use Combat Items
+- **Juju Flurry** - Attack speed increase (20 seconds)
+- **Mighty Rage Potion** - Rage generation (20 seconds)
+- **Great Rage Potion** - Rage generation (20 seconds)
+- **Potion of Quickness** - Haste increase (30 seconds)
+- **Free Action Potion** - Immunity to movement impairing effects (30 seconds)
+- **Restorative Potion** - Remove poison, disease, curse, magic (30 seconds)
+- **Limited Invulnerability Potion** - Physical immunity (6 seconds)
+
+### Special Juju Items (Individual Cooldowns)
+- **Juju Escape** - Dodge increase (10 seconds)
+- **Juju Ember** - Fire resistance (20 seconds)
+- **Juju Chill** - Frost resistance (20 seconds)
+
+### Uncategorized/Special Items
+- **Swiftness of Zanza** - Movement speed (2 hours)
+- **Elixir of Poison Resistance** - Poison resistance (instant)
+- **Nordanaar Herbal Tea** - Instant healing effect (On-Use, instant)
+- **Restorative Potion** - Removes 1 magic, curse, poison, or disease effect on you every 5 seconds for 30 seconds
+- **Limited Invulnerability Potion** - Imbiber is immune to physical attacks for the next 6 seconds.
+- **Dragonbreath Chili** - Mainly for degenerate paladins, figure it out.  
