@@ -87,7 +87,6 @@ local consumablesDB = {
     [9030] = {buffID = 11359, name = "Restorative Potion", icon = "Interface\\Icons\\INV_Potion_118", duration = 30, isOnUse = true},
     [3387] = {buffID = 3169, name = "Limited Invulnerability Potion", icon = "Interface\\Icons\\INV_Potion_121", duration = 6, isOnUse = true},
     [12217] = {buffID = 15852, name = "Dragonbreath Chili", icon = "Interface\\Icons\\INV_Drink_23", duration = 600},
-
 }
 
 -- Saved variables to persist across sessions
@@ -106,7 +105,6 @@ RaidingConsumesDB = RaidingConsumesDB or {
 }
 
 -- ### Helper Functions
--- (Existing helpers unchanged: strsplit, string.trim, HasBuff, HasItem, FindAndUseItem, IsEatingOrDrinking)
 
 -- **Split strings by a delimiter**
 local function strsplit(delim, str)
@@ -232,6 +230,7 @@ local function GetIndividualCooldown(itemID)
     local currentTime = GetTime()
     return math.max(0, cooldownDuration - (currentTime - lastUsed))
 end
+
 local function CheckPendingOnUseItems()
     local currentTime = GetTime()
     
@@ -257,112 +256,6 @@ local function CheckPendingOnUseItems()
     end
 end
 
--- ### Core Functionality
-
--- Create the addon frame and GUI
-local RC = CreateFrame("Frame")
-RC.ConfigFrame = CreateFrame("Frame", nil, UIParent)
-RC.OnUseFrame = CreateFrame("Frame", nil, UIParent) -- NEW: Separate frame for on-use consumables
-RC.RegularFrame = CreateFrame("Frame", nil, UIParent) -- NEW: Separate frame for regular consumables
-RC.buttons = {}
-RC.onUseButtons = {} -- NEW: Buttons for on-use frame
-RC.regularButtons = {} -- NEW: Buttons for regular frame
-
-RC.ConfigFrame:RegisterEvent("PLAYER_AURAS_CHANGED")
-RC.ConfigFrame:RegisterEvent("UNIT_COMBAT")
-RC.ConfigFrame:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
-RC.ConfigFrame:SetScript("OnEvent", function()
-    if event == "PLAYER_AURAS_CHANGED" then
-        CheckPendingOnUseItems() -- Check if any pending items got their buffs
-        RC:UpdateGUI()
-    elseif event == "UNIT_COMBAT" then
-        -- Handle Nordanaar Herbal Tea healing confirmation
-        if arg1 == "player" and arg2 == "HEAL" and arg4 then
-            RC:HandleTeaHealing(arg4)
-        end
-    elseif event == "CHAT_MSG_COMBAT_SELF_HITS" then
-        -- Alternative method: parse chat message for tea healing
-        if arg1 and string.find(arg1, "Your Tea heals you for") then
-            RC:HandleTeaHealingFromChat(arg1)
-        end
-    end
-end)
-
--- Function to toggle layout for a specific frame
-local function ToggleFrameLayout(frame)
-    if RaidingConsumesDB.separateConsumes then
-        -- In separate windows mode, toggle individual layouts
-        if frame == RC.OnUseFrame then
-            RaidingConsumesDB.onUseVerticalLayout = not RaidingConsumesDB.onUseVerticalLayout
-            local layoutText = RaidingConsumesDB.onUseVerticalLayout and "vertical" or "horizontal"
-            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout changed to " .. layoutText .. ".")
-        elseif frame == RC.RegularFrame then
-            RaidingConsumesDB.regularVerticalLayout = not RaidingConsumesDB.regularVerticalLayout
-            local layoutText = RaidingConsumesDB.regularVerticalLayout and "vertical" or "horizontal"
-            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Regular window layout changed to " .. layoutText .. ".")
-        end
-    else
-        -- In single window mode, toggle main layout
-        RaidingConsumesDB.verticalLayout = not RaidingConsumesDB.verticalLayout
-        local layoutText = RaidingConsumesDB.verticalLayout and "vertical" or "horizontal"
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Main window layout changed to " .. layoutText .. ".")
-    end
-    RC:UpdateGUI()
-end
-
--- Setup function for frames
-local function SetupFrame(frame, posX, posY)
-    local backdrop = {
-        bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 16,
-        insets = { left = 3, right = 5, top = 3, bottom = 5 }
-    }
-    frame:SetBackdrop(backdrop)
-    frame:SetBackdropColor(0, 0, 0, 0.8)
-    frame:SetWidth(100)
-    frame:SetHeight(48)
-    frame:SetMovable(1)
-    frame:EnableMouse(1)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", posX, posY)
-    
-    -- Add right-click functionality for layout switching
-    frame:SetScript("OnMouseDown", function()
-        if arg1 == "RightButton" then
-            ToggleFrameLayout(this)
-        end
-    end)
-    
-    frame:Hide()
-end
-
--- Setup the main frame
-SetupFrame(RC.ConfigFrame, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY)
-RC.ConfigFrame:SetScript("OnDragStart", function() RC.ConfigFrame:StartMoving() end)
-RC.ConfigFrame:SetScript("OnDragStop", function()
-    RC.ConfigFrame:StopMovingOrSizing()
-    _, _, _, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY = RC.ConfigFrame:GetPoint()
-end)
-
--- Setup the on-use frame
-SetupFrame(RC.OnUseFrame, RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY)
-RC.OnUseFrame:SetScript("OnDragStart", function() RC.OnUseFrame:StartMoving() end)
-RC.OnUseFrame:SetScript("OnDragStop", function()
-    RC.OnUseFrame:StopMovingOrSizing()
-    _, _, _, RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY = RC.OnUseFrame:GetPoint()
-end)
-
--- Setup the regular frame
-SetupFrame(RC.RegularFrame, RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY)
-RC.RegularFrame:SetScript("OnDragStart", function() RC.RegularFrame:StartMoving() end)
-RC.RegularFrame:SetScript("OnDragStop", function()
-    RC.RegularFrame:StopMovingOrSizing()
-    _, _, _, RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY = RC.RegularFrame:GetPoint()
-end)
-
 -- Add this function to count items in bags
 local function CountItemInBags(itemID)
     local count = 0
@@ -381,8 +274,70 @@ local function CountItemInBags(itemID)
     return count
 end
 
+-- ### Core Functionality
+
+-- PROPER FRAME MANAGEMENT - Use named frames to prevent duplicates
+local RC = CreateFrame("Frame")
+RC.buttons = {}
+RC.onUseButtons = {}
+RC.regularButtons = {}
+
+-- Function to get or create a named frame
+local function GetOrCreateFrame(frameName, posX, posY)
+    -- Try to find existing frame first
+    local frame = getglobal(frameName)
+    if frame then
+        -- Frame already exists, just return it
+        return frame
+    end
+    
+    -- Create new frame with unique name
+    frame = CreateFrame("Frame", frameName, UIParent)
+    
+    local backdrop = {
+        bgFile = "Interface\\TutorialFrame\\TutorialFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 16,
+        insets = { left = 3, right = 5, top = 3, bottom = 5 }
+    }
+    frame:SetBackdrop(backdrop)
+    frame:SetBackdropColor(0, 0, 0, 0.8)
+    frame:SetWidth(100)
+    frame:SetHeight(48)
+    frame:SetMovable(1)
+    frame:EnableMouse(1)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", posX, posY)
+    frame:Hide()
+    
+    return frame
+end
+
 -- Function to create buttons for a specific frame
 local function CreateButtonsForFrame(frame, buttonTable, maxButtons)
+    -- Clear ALL children from the frame to remove any leftover buttons from previous sessions
+    local children = { frame:GetChildren() }
+    for _, child in ipairs(children) do
+        if child:GetObjectType() == "Button" then
+            child:Hide()
+            child:SetParent(nil)
+        end
+    end
+    
+    -- Clear existing buttons from our table
+    for i, button in ipairs(buttonTable) do
+        if button then
+            button:Hide()
+            button:SetParent(nil)
+        end
+    end
+    -- Clear the table
+    for i = table.getn(buttonTable), 1, -1 do
+        table.remove(buttonTable, i)
+    end
+    
     for i = 1, maxButtons do
         local button = CreateFrame("Button", nil, frame)
         button:SetWidth(32)
@@ -407,10 +362,34 @@ local function CreateButtonsForFrame(frame, buttonTable, maxButtons)
     end
 end
 
--- Create buttons for all frames
-CreateButtonsForFrame(RC.ConfigFrame, RC.buttons, 25) -- Extended to 25
-CreateButtonsForFrame(RC.OnUseFrame, RC.onUseButtons, 25)
-CreateButtonsForFrame(RC.RegularFrame, RC.regularButtons, 25)
+-- Function to toggle layout for a specific frame
+local function ToggleFrameLayout(frame)
+    if RaidingConsumesDB.separateConsumes then
+        -- In separate windows mode, toggle individual layouts
+        if frame == RC.OnUseFrame then
+            RaidingConsumesDB.onUseVerticalLayout = not RaidingConsumesDB.onUseVerticalLayout
+            local layoutText = RaidingConsumesDB.onUseVerticalLayout and "vertical" or "horizontal"
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r On-use window layout changed to " .. layoutText .. ".")
+            -- Force button recreation for this frame
+            CreateButtonsForFrame(RC.OnUseFrame, RC.onUseButtons, 25)
+        elseif frame == RC.RegularFrame then
+            RaidingConsumesDB.regularVerticalLayout = not RaidingConsumesDB.regularVerticalLayout
+            local layoutText = RaidingConsumesDB.regularVerticalLayout and "vertical" or "horizontal"
+            DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Regular window layout changed to " .. layoutText .. ".")
+            -- Force button recreation for this frame
+            CreateButtonsForFrame(RC.RegularFrame, RC.regularButtons, 25)
+        end
+    else
+        -- In single window mode, toggle main layout
+        RaidingConsumesDB.verticalLayout = not RaidingConsumesDB.verticalLayout
+        local layoutText = RaidingConsumesDB.verticalLayout and "vertical" or "horizontal"
+        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r Main window layout changed to " .. layoutText .. ".")
+        -- Force button recreation for this frame
+        CreateButtonsForFrame(RC.ConfigFrame, RC.buttons, 25)
+    end
+    RC:UpdateGUI()
+end
+
 
 -- Handle Nordanaar Herbal Tea healing confirmation
 function RC:HandleTeaHealing(healAmount)
@@ -595,7 +574,6 @@ function RC:UpdateTimers()
 end
 
 -- Function to update the GUI
--- Modify the UpdateGUI function to update counts
 function RC:UpdateGUI()
     if RaidingConsumesDB.separateConsumes then
         self:UpdateSeparateGUI()
@@ -607,8 +585,8 @@ end
 -- Update single GUI (original functionality)
 function RC:UpdateSingleGUI()
     -- Hide separate frames
-    RC.OnUseFrame:Hide()
-    RC.RegularFrame:Hide()
+    if RC.OnUseFrame then RC.OnUseFrame:Hide() end
+    if RC.RegularFrame then RC.RegularFrame:Hide() end
     
     local selected = {}
     for itemID, _ in pairs(RaidingConsumesDB.consumablesSelected) do
@@ -642,7 +620,7 @@ end
 -- Update separate GUI (new functionality)
 function RC:UpdateSeparateGUI()
     -- Hide main frame
-    RC.ConfigFrame:Hide()
+    if RC.ConfigFrame then RC.ConfigFrame:Hide() end
     
     local onUseItems = {}
     local regularItems = {}
@@ -778,7 +756,6 @@ function RC:UpdateFrameButtons(frame, buttons, itemList, numButtons)
     end
 end
 
-
 -- Function to use a specific consumable
 function RC:UseConsumable(itemID)
     if IsEatingOrDrinking() then
@@ -887,19 +864,19 @@ local function RaidingConsumes_SlashCommand(msg)
     if not msg or msg == "" then
         if RaidingConsumesDB.separateConsumes then
             -- Toggle visibility for separate windows
-            if RC.OnUseFrame:IsShown() or RC.RegularFrame:IsShown() then
-                RC.OnUseFrame:Hide()
-                RC.RegularFrame:Hide()
+            if (RC.OnUseFrame and RC.OnUseFrame:IsShown()) or (RC.RegularFrame and RC.RegularFrame:IsShown()) then
+                if RC.OnUseFrame then RC.OnUseFrame:Hide() end
+                if RC.RegularFrame then RC.RegularFrame:Hide() end
             else
                 RC:UpdateGUI()
             end
         else
             -- Toggle visibility for single window
-            if RC.ConfigFrame:IsShown() then
+            if RC.ConfigFrame and RC.ConfigFrame:IsShown() then
                 RC.ConfigFrame:Hide()
             else
                 RC:UpdateGUI()
-                RC.ConfigFrame:Show()
+                if RC.ConfigFrame then RC.ConfigFrame:Show() end
             end
         end
         return
@@ -1115,8 +1092,15 @@ SlashCmdList["RAIDINGCONSUMES"] = RaidingConsumes_SlashCommand
 SLASH_USECONS1 = "/usecons"
 SlashCmdList["USECONS"] = UseConsumables
 
--- ### Initialization
+-- ### Initialization Fix
+local isInitialized = false -- Add this flag to prevent multiple initializations
+
 local function RaidingConsumes_Initialize()
+    -- Prevent multiple initializations
+    if isInitialized then
+        return
+    end
+    
     -- Ensure these exist
     RaidingConsumesDB.threshold = RaidingConsumesDB.threshold or 120
     RaidingConsumesDB.consumablesSelected = RaidingConsumesDB.consumablesSelected or {}
@@ -1124,25 +1108,84 @@ local function RaidingConsumes_Initialize()
     RaidingConsumesDB.PosY = RaidingConsumesDB.PosY or -200
     RaidingConsumesDB.showOnUseOnly = RaidingConsumesDB.showOnUseOnly or false
     RaidingConsumesDB.verticalLayout = RaidingConsumesDB.verticalLayout or false
-    RaidingConsumesDB.separateConsumes = RaidingConsumesDB.separateConsumes or false -- NEW: Initialize separate windows option
-    RaidingConsumesDB.onUsePosX = RaidingConsumesDB.onUsePosX or 200 -- NEW: Initialize on-use window position
+    RaidingConsumesDB.separateConsumes = RaidingConsumesDB.separateConsumes or false
+    RaidingConsumesDB.onUsePosX = RaidingConsumesDB.onUsePosX or 200
     RaidingConsumesDB.onUsePosY = RaidingConsumesDB.onUsePosY or -200
-    RaidingConsumesDB.regularPosX = RaidingConsumesDB.regularPosX or 200 -- NEW: Initialize regular window position
+    RaidingConsumesDB.regularPosX = RaidingConsumesDB.regularPosX or 200
     RaidingConsumesDB.regularPosY = RaidingConsumesDB.regularPosY or -300
-    RaidingConsumesDB.onUseVerticalLayout = RaidingConsumesDB.onUseVerticalLayout or false -- NEW: On-use window layout
-    RaidingConsumesDB.regularVerticalLayout = RaidingConsumesDB.regularVerticalLayout or false -- NEW: Regular window layout
+    RaidingConsumesDB.onUseVerticalLayout = RaidingConsumesDB.onUseVerticalLayout or false
+    RaidingConsumesDB.regularVerticalLayout = RaidingConsumesDB.regularVerticalLayout or false
     
-    -- Position all frames
-    RC.ConfigFrame:ClearAllPoints()
-    RC.ConfigFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.PosX, RaidingConsumesDB.PosY)
+    -- GET OR CREATE frames using named frames to prevent duplicates
+    RC.ConfigFrame = GetOrCreateFrame("RaidConsumesConfigFrame", RaidingConsumesDB.PosX, RaidingConsumesDB.PosY)
+    RC.OnUseFrame = GetOrCreateFrame("RaidConsumesOnUseFrame", RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY)
+    RC.RegularFrame = GetOrCreateFrame("RaidConsumesRegularFrame", RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY)
     
-    RC.OnUseFrame:ClearAllPoints()
-    RC.OnUseFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY)
+    -- Set up right-click functionality for layout switching for all frames
+    RC.ConfigFrame:SetScript("OnMouseDown", function()
+        if arg1 == "RightButton" then
+            ToggleFrameLayout(this)
+        end
+    end)
     
-    RC.RegularFrame:ClearAllPoints()
-    RC.RegularFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY)
+    RC.OnUseFrame:SetScript("OnMouseDown", function()
+        if arg1 == "RightButton" then
+            ToggleFrameLayout(this)
+        end
+    end)
+    
+    RC.RegularFrame:SetScript("OnMouseDown", function()
+        if arg1 == "RightButton" then
+            ToggleFrameLayout(this)
+        end
+    end)
+    
+    -- Set up event handling only on ConfigFrame
+    RC.ConfigFrame:RegisterEvent("PLAYER_AURAS_CHANGED")
+    RC.ConfigFrame:RegisterEvent("UNIT_COMBAT")
+    RC.ConfigFrame:RegisterEvent("CHAT_MSG_COMBAT_SELF_HITS")
+    RC.ConfigFrame:SetScript("OnEvent", function()
+        if event == "PLAYER_AURAS_CHANGED" then
+            CheckPendingOnUseItems() -- Check if any pending items got their buffs
+            RC:UpdateGUI()
+        elseif event == "UNIT_COMBAT" then
+            -- Handle Nordanaar Herbal Tea healing confirmation
+            if arg1 == "player" and arg2 == "HEAL" and arg4 then
+                RC:HandleTeaHealing(arg4)
+            end
+        elseif event == "CHAT_MSG_COMBAT_SELF_HITS" then
+            -- Alternative method: parse chat message for tea healing
+            if arg1 and string.find(arg1, "Your Tea heals you for") then
+                RC:HandleTeaHealingFromChat(arg1)
+            end
+        end
+    end)
+    
+    -- Set up drag functionality for all frames
+    RC.ConfigFrame:SetScript("OnDragStart", function() RC.ConfigFrame:StartMoving() end)
+    RC.ConfigFrame:SetScript("OnDragStop", function()
+        RC.ConfigFrame:StopMovingOrSizing()
+        _, _, _, RaidingConsumesDB.PosX, RaidingConsumesDB.PosY = RC.ConfigFrame:GetPoint()
+    end)
+    
+    RC.OnUseFrame:SetScript("OnDragStart", function() RC.OnUseFrame:StartMoving() end)
+    RC.OnUseFrame:SetScript("OnDragStop", function()
+        RC.OnUseFrame:StopMovingOrSizing()
+        _, _, _, RaidingConsumesDB.onUsePosX, RaidingConsumesDB.onUsePosY = RC.OnUseFrame:GetPoint()
+    end)
+    
+    RC.RegularFrame:SetScript("OnDragStart", function() RC.RegularFrame:StartMoving() end)
+    RC.RegularFrame:SetScript("OnDragStop", function()
+        RC.RegularFrame:StopMovingOrSizing()
+        _, _, _, RaidingConsumesDB.regularPosX, RaidingConsumesDB.regularPosY = RC.RegularFrame:GetPoint()
+    end)
+    
+    -- Create buttons for all frames
+    CreateButtonsForFrame(RC.ConfigFrame, RC.buttons, 25)
+    CreateButtonsForFrame(RC.OnUseFrame, RC.onUseButtons, 25)
+    CreateButtonsForFrame(RC.RegularFrame, RC.regularButtons, 25)
 
-    -- Update the GUI
+    -- Update the GUI only once
     RC:UpdateGUI()
 
     -- Show/Hide frames based on mode and content
@@ -1151,31 +1194,43 @@ local function RaidingConsumes_Initialize()
         count = count + 1
     end
     
+    -- Only show frames if we have consumables selected
     if count > 0 then
         if RaidingConsumesDB.separateConsumes then
-            -- Separate windows mode will be handled by UpdateGUI
+            -- UpdateGUI will handle showing the appropriate frames
         else
             RC.ConfigFrame:Show()
         end
-    else
-        RC.ConfigFrame:Hide()
-        RC.OnUseFrame:Hide()
-        RC.RegularFrame:Hide()
     end
+    
+    -- Mark as initialized
+    isInitialized = true
 end
 
-
-
--- Create a frame to handle addon initialization
+-- Modified event handling - use only ADDON_LOADED instead of VARIABLES_LOADED
 local RaidConsumesFrame = CreateFrame("Frame", "RaidConsumesFrame")
-RaidConsumesFrame:RegisterEvent("VARIABLES_LOADED")
+RaidConsumesFrame:RegisterEvent("ADDON_LOADED")
 RaidConsumesFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+local addonLoaded = false
+local playerEntered = false
+
 RaidConsumesFrame:SetScript("OnEvent", function()
-    if event == "VARIABLES_LOADED" then
-        RaidingConsumes_Initialize()
-        RaidingConsumes_SlashCommand("list")
+    if event == "ADDON_LOADED" and arg1 == "RaidConsumes" then -- Replace with your actual addon folder name
+        addonLoaded = true
+        if playerEntered then
+            RaidingConsumes_Initialize()
+        end
     elseif event == "PLAYER_ENTERING_WORLD" then
-        DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r loaded. Please type /rc to show GUI or for help.")
+        playerEntered = true
+        if addonLoaded then
+            RaidingConsumes_Initialize()
+            -- Only show the list message once
+            if isInitialized then
+                RaidingConsumes_SlashCommand("list")
+                DEFAULT_CHAT_FRAME:AddMessage("|cff00ff00[RaidConsumes]|r loaded. Please type /rc to show GUI or for help.")
+            end
+        end
     end
 end)
 
@@ -1186,7 +1241,9 @@ RaidConsumesFrame:SetScript("OnUpdate", function()
     local currentTime = GetTime()
     if (currentTime - lastUpdate) >= updateInterval then
         CheckPendingOnUseItems() -- Check for pending items that may have timed out
-        RC:UpdateTimers()
+        if RC and RC.UpdateTimers then
+            RC:UpdateTimers()
+        end
         lastUpdate = currentTime
     end
 end)
