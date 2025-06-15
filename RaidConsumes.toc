@@ -1,8 +1,9 @@
 ## Interface: 11200
 ## Title: Raid Consumes
 ## Notes: Uses consumables based on missing buffs.
-## Author: YourName
+## Author: Quad Crown
 ## Version: 1.0
+## SavedVariables: RaidingConsumesDB
 
 RaidConsumes.xml
 RaidConsumes.lua
